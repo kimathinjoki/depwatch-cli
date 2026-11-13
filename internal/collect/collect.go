@@ -35,6 +35,11 @@ type Options struct {
 	PullImages bool
 	CLIVersion string
 	Now        func() time.Time
+	// TakenBy is "cli" (default) or "github" when a server fetched the files; Commit and Branch then
+	// say where from, for a folder that is not a git checkout.
+	TakenBy string
+	Commit  string
+	Branch  string
 }
 
 // Take takes the inventory. A depwatch.yml problem is returned as *config.Error.
@@ -57,6 +62,15 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 		TakenAt:       now().UTC().Format(time.RFC3339),
 		TakenBy:       "cli",
 		Part:          gitPart(root),
+	}
+	if o.TakenBy != "" {
+		inv.TakenBy = o.TakenBy
+	}
+	if o.Commit != "" {
+		inv.Part.Commit = o.Commit
+	}
+	if o.Branch != "" {
+		inv.Part.Branch = o.Branch
 	}
 	inv.Part.ProductionBranch = cfg.ProductionBranch
 

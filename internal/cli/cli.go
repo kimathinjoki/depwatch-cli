@@ -36,6 +36,8 @@ type Env struct {
 	Getenv  func(string) string
 	// HTTP, when set, is used for calls to a depwatch server and to OSV's exports.
 	HTTP *http.Client
+	// Stdin feeds commands that read a listing.
+	Stdin io.Reader
 }
 
 // usageError is a problem with the command line or depwatch.yml.
@@ -54,7 +56,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	if f, ok := stdout.(*os.File); ok && term.IsTerminal(int(f.Fd())) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" {
 		color = true
 	}
-	return Run(args, Env{Stdout: stdout, Stderr: stderr, Color: color, Getenv: os.Getenv})
+	return Run(args, Env{Stdout: stdout, Stderr: stderr, Color: color, Getenv: os.Getenv, Stdin: os.Stdin})
 }
 
 // Run runs the command line and returns the exit code.
@@ -66,6 +68,9 @@ func Run(args []string, env Env) int {
 	root.SetArgs(args)
 	root.SetOut(env.Stdout)
 	root.SetErr(env.Stderr)
+	if env.Stdin != nil {
+		root.SetIn(env.Stdin)
+	}
 	err := root.Execute()
 	if err == nil {
 		return ExitOK
@@ -145,7 +150,7 @@ run incomplete.`,
 	}
 	root.PersistentFlags().Bool("json", false, "write all output as JSON")
 	root.SetFlagErrorFunc(func(c *cobra.Command, err error) error { return err })
-	root.AddCommand(newVersion(env), newInventory(env), newGate(env), newScan(env), newLogin(env), newMirror(env), newMatch(env))
+	root.AddCommand(newVersion(env), newInventory(env), newGate(env), newScan(env), newLogin(env), newMirror(env), newMatch(env), newWanted(env))
 	root.CompletionOptions.DisableDefaultCmd = true
 	return root
 }

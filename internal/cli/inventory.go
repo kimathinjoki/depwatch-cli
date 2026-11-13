@@ -27,6 +27,8 @@ func addTakeFlags(c *cobra.Command, f *takeFlags) {
 
 func newInventory(env *Env) *cobra.Command {
 	var tf takeFlags
+	var takenBy, commit, branch string
+	var pull bool
 	c := &cobra.Command{
 		Use:   "inventory [path]",
 		Short: "List everything the project contains, and everything that could not be read",
@@ -34,7 +36,7 @@ func newInventory(env *Env) *cobra.Command {
 operating system packages of any image or root filesystem given, and every file that could not be
 read, every unsupported ecosystem and every manifest with no lockfile.
 
-Makes no network call. Base images named in depwatch.yml or a Dockerfile are listed as not read;
+Makes no network call (unless --pull-images). Base images named in depwatch.yml or a Dockerfile are listed as not read;
 depwatch gate pulls them, or pass --image.
 
 Exit codes: 0 complete, 2 incomplete (something could not be read), 3 usage or depwatch.yml error.`,
@@ -44,8 +46,12 @@ Exit codes: 0 complete, 2 incomplete (something could not be read), 3 usage or d
 			if len(args) == 1 {
 				root = args[0]
 			}
+			if takenBy != "cli" && takenBy != "github" {
+				return &usageError{msg: "--taken-by is cli or github"}
+			}
 			inv, _, err := collect.Take(context.Background(), collect.Options{
-				Root: root, Images: tf.images, RootFS: tf.rootfs, PullImages: false, CLIVersion: version.Version,
+				Root: root, Images: tf.images, RootFS: tf.rootfs, PullImages: pull, CLIVersion: version.Version,
+				TakenBy: takenBy, Commit: commit, Branch: branch,
 			})
 			if err != nil {
 				return err
@@ -64,6 +70,13 @@ Exit codes: 0 complete, 2 incomplete (something could not be read), 3 usage or d
 		},
 	}
 	addTakeFlags(c, &tf)
+	c.Flags().BoolVar(&pull, "pull-images", false, "pull the base images named in Dockerfiles and depwatch.yml (makes network calls)")
+	c.Flags().StringVar(&takenBy, "taken-by", "cli", "how the files were obtained: cli, or github when a server fetched them")
+	c.Flags().StringVar(&commit, "commit", "", "the commit the files are from, for a folder that is not a git checkout")
+	c.Flags().StringVar(&branch, "branch", "", "the branch the files are from, for a folder that is not a git checkout")
+	for _, f := range []string{"taken-by", "commit", "branch"} {
+		_ = c.Flags().MarkHidden(f)
+	}
 	return c
 }
 
