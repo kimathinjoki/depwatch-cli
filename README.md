@@ -180,6 +180,12 @@ and fix versions. It does no ranking. You will rarely run it yourself.
 
 Prints the version, commit and build date stamped at build time.
 
+### `depwatch reference`
+
+Hidden from `--help`: writes the whole command line (every command, flag, default, the exit codes and
+the environment variables) as JSON. The public site's docs are generated from it, so they say exactly
+what `--help` says.
+
 ### Exit codes
 
 | Code | Meaning |
