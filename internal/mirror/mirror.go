@@ -178,6 +178,56 @@ func (s *Syncer) Sync(ctx context.Context, ecosystem string) (State, error) {
 	return st, writeJSON(filepath.Join(dir, "state.json"), st)
 }
 
+// Import installs an export archive already on disk (for a copy with no route to OSV, or a test),
+// exactly as Sync installs a download.
+func (s *Syncer) Import(ecosystem, archive string) (State, error) {
+	base := Base(ecosystem)
+	now := time.Now
+	if s.Now != nil {
+		now = s.Now
+	}
+	dir := filepath.Join(s.Dir, base)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return State{}, err
+	}
+	st, _ := ReadState(s.Dir, base)
+	st.Ecosystem = base
+	st.LastAttemptAt = now().UTC().Format(time.RFC3339)
+	fail := func(err error) (State, error) {
+		st.LastError = err.Error()
+		_ = writeJSON(filepath.Join(dir, "state.json"), st)
+		return st, err
+	}
+	raw, err := os.ReadFile(archive)
+	if err != nil {
+		return fail(err)
+	}
+	tmp := filepath.Join(dir, "all.zip.download")
+	if err := os.WriteFile(tmp, raw, 0o644); err != nil {
+		return fail(err)
+	}
+	idx, entries, err := BuildIndex(tmp)
+	if err != nil {
+		os.Remove(tmp)
+		return fail(fmt.Errorf("the %s archive is not readable: %w", base, err))
+	}
+	if err := writeJSON(filepath.Join(dir, "index.json.new"), idx); err != nil {
+		return fail(err)
+	}
+	if err := os.Rename(tmp, filepath.Join(dir, "all.zip")); err != nil {
+		return fail(err)
+	}
+	if err := os.Rename(filepath.Join(dir, "index.json.new"), filepath.Join(dir, "index.json")); err != nil {
+		return fail(err)
+	}
+	st.SyncedAt = now().UTC().Format(time.RFC3339)
+	st.Entries = entries
+	st.ArchiveBytes = int64(len(raw))
+	st.LastModified = ""
+	st.LastError = ""
+	return st, writeJSON(filepath.Join(dir, "state.json"), st)
+}
+
 // BuildIndex reads every entry of an export archive and indexes it by the packages it affects.
 func BuildIndex(zipPath string) (*Index, int, error) {
 	zr, err := zip.OpenReader(zipPath)

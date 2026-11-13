@@ -22,13 +22,14 @@ func newMirror(env *Env) *cobra.Command {
 	}
 	var dir string
 	var ecos []string
-	var baseURL string
+	var baseURL, archive string
 	sync := &cobra.Command{
 		Use:   "sync --dir <dir> --ecosystem <name>...",
 		Short: "Download OSV's export for each ecosystem when it changed, and index it",
 		Long: `Download OSV's export for each named ecosystem (npm, PyPI, RubyGems, Debian and so on; the part
 before any ":"), keep the archive and index it by package. An unchanged export is not downloaded again.
-A failed download keeps the previous copy and is reported.
+A failed download keeps the previous copy and is reported. With --archive, an export already
+downloaded (for a copy with no route to OSV) is installed instead, for one ecosystem.
 
 Exit codes: 0 every ecosystem synced; 2 at least one did not.`,
 		Args: cobra.NoArgs,
@@ -42,8 +43,17 @@ Exit codes: 0 every ecosystem synced; 2 at least one did not.`,
 			}
 			var states []mirror.State
 			failed := false
+			if archive != "" && len(ecos) != 1 {
+				return &usageError{msg: "--archive installs one ecosystem's export: give exactly one --ecosystem"}
+			}
 			for _, e := range ecos {
-				st, err := s.Sync(context.Background(), e)
+				var st mirror.State
+				var err error
+				if archive != "" {
+					st, err = s.Import(e, archive)
+				} else {
+					st, err = s.Sync(context.Background(), e)
+				}
 				if err != nil {
 					failed = true
 				}
@@ -71,6 +81,7 @@ Exit codes: 0 every ecosystem synced; 2 at least one did not.`,
 	}
 	sync.Flags().StringVar(&dir, "dir", "", "the mirror folder")
 	sync.Flags().StringArrayVar(&ecos, "ecosystem", nil, "an OSV ecosystem to sync; repeatable")
+	sync.Flags().StringVar(&archive, "archive", "", "install this downloaded export (all.zip) instead of downloading")
 	sync.Flags().StringVar(&baseURL, "base-url", mirror.DefaultBaseURL, "where OSV publishes its exports")
 	_ = sync.Flags().MarkHidden("base-url")
 

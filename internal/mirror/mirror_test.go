@@ -172,3 +172,20 @@ func TestWithdrawnIsAnswered(t *testing.T) {
 		t.Fatalf("%v", ids)
 	}
 }
+
+func TestImportArchive(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "all.zip")
+	if err := os.WriteFile(path, zipOf(t, map[string]any{"GHSA-i": entry("GHSA-i", "npm", "x", nil, "1.0.0")}), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	st, err := (&Syncer{Dir: dir}).Import("npm", path)
+	if err != nil || st.Entries != 1 || st.SyncedAt == "" {
+		t.Fatalf("%+v %v", st, err)
+	}
+	r := Open(dir)
+	defer r.Close()
+	if ids, _ := r.Affecting("npm", "x", "1.0.0"); !slices.Equal(ids, []string{"GHSA-i"}) {
+		t.Fatalf("%v", ids)
+	}
+}
