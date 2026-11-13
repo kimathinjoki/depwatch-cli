@@ -120,11 +120,11 @@ func TestGateJSONMatchesHuman(t *testing.T) {
 	}
 }
 
-// Runtimes appear in the gate's output as listed but not checked in this version.
+// Runtimes appear in the gate's output as listed but not checked: the gate has no runtime source.
 func TestGateListsRuntimesAsNotChecked(t *testing.T) {
 	dir := testutil.Tree(t, map[string]string{".ruby-version": "3.3.4\n", "go.mod": "module x\n\ngo 1.22\n"})
 	_, out, _ := run(t, &sources.Recording{OSVQueries: map[string][]string{}}, "gate", dir)
-	if !strings.Contains(out, "ruby 3.3.4") || !strings.Contains(out, "not yet checked") {
+	if !strings.Contains(out, "ruby 3.3.4") || !strings.Contains(out, "not checked by the gate") {
 		t.Fatalf("%s", out)
 	}
 }

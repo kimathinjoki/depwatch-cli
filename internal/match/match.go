@@ -162,7 +162,7 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 		}
 		rep.NotChecked = append(rep.NotChecked, NotChecked{
 			What: "runtimes and databases: " + strings.Join(uniq(names), ", "),
-			Why:  "listed, not yet checked: runtime and database advisories come in a later version",
+			Why:  "listed, not checked by the gate: a depwatch server checks them against NVD and endoflife.date",
 		})
 	}
 

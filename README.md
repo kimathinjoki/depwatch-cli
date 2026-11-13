@@ -225,8 +225,8 @@ ignore:
 
 Runtimes also come from `.ruby-version`, `.nvmrc`, `.node-version`, `.python-version` and
 `.tool-versions`. When `depwatch.yml` and a version file in the same folder disagree, both are listed
-and the output says they disagree. Runtimes are listed and not yet checked in this version; the
-output says so.
+and the output says they disagree. The gate lists runtimes without checking them (the output says so);
+a depwatch server checks them against NVD and endoflife.date.
 
 ## In CI
 
