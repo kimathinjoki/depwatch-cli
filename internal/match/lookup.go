@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
 	"github.com/kimathinjoki/depwatch-cli/internal/sources"
@@ -19,6 +20,25 @@ type Matched struct {
 	SourceFile string   `json:"source_file"`
 	Image      string   `json:"image"`
 	IDs        []string `json:"ids"`
+	// Fixes holds, per advisory id, the fix versions for this package.
+	Fixes map[string]Fix `json:"fixes"`
+}
+
+// Fix is the fix versions for one package and one advisory.
+type Fix struct {
+	SameMajor string `json:"same_major,omitempty"`
+	Lowest    string `json:"lowest,omitempty"`
+}
+
+// Facts are what depwatch reads from one advisory, computed once here so the server needs no CVSS or
+// version rules of its own.
+type Facts struct {
+	CVSS        *float64 `json:"cvss"`
+	CVSSVector  string   `json:"cvss_vector,omitempty"`
+	SourceLabel string   `json:"source_label,omitempty"`
+	Malicious   bool     `json:"malicious"`
+	CVEs        []string `json:"cves"`
+	Withdrawn   bool     `json:"withdrawn"`
 }
 
 // LookupResult is what `depwatch match` answers: which advisories affect which package, the advisories
@@ -28,6 +48,7 @@ type LookupResult struct {
 	Complete      bool                     `json:"complete"`
 	Matches       []Matched                `json:"matches"`
 	Advisories    map[string]*sources.Vuln `json:"advisories"`
+	Facts         map[string]Facts         `json:"facts"`
 	NotChecked    []NotChecked             `json:"not_checked"`
 	SourceErrors  []string                 `json:"source_errors"`
 	Checked       int                      `json:"checked"`
@@ -35,7 +56,7 @@ type LookupResult struct {
 
 // Lookup answers which advisories affect each package of the inventory, from the OSV source alone.
 func Lookup(ctx context.Context, inv *inventory.Inventory, osv sources.OSV, workers int) *LookupResult {
-	res := &LookupResult{SchemaVersion: "1", Matches: []Matched{}, Advisories: map[string]*sources.Vuln{},
+	res := &LookupResult{SchemaVersion: "1", Matches: []Matched{}, Advisories: map[string]*sources.Vuln{}, Facts: map[string]Facts{},
 		NotChecked: []NotChecked{}, SourceErrors: []string{}}
 	failed := map[string]string{}
 	fail := func(err error) {
@@ -78,11 +99,16 @@ func Lookup(ctx context.Context, inv *inventory.Inventory, osv sources.OSV, work
 		}
 		seen[key] = true
 		m := Matched{Kind: s.place.Kind, Ecosystem: s.place.Ecosystem, Name: s.place.Name, Version: s.place.Version,
-			SourceFile: s.place.SourceFile, Image: s.place.Image}
+			SourceFile: s.place.SourceFile, Image: s.place.Image, Fixes: map[string]Fix{}}
 		for _, id := range list {
 			if v := vulns[id]; v != nil {
 				m.IDs = append(m.IDs, id)
 				res.Advisories[id] = v
+				res.Facts[id] = FactsOf(v)
+				same, lowest := fixes([]*sources.Vuln{v}, s.place)
+				if same != "" || lowest != "" {
+					m.Fixes[id] = Fix{SameMajor: same, Lowest: lowest}
+				}
 			}
 		}
 		if len(m.IDs) > 0 {
@@ -123,3 +149,28 @@ func pluralPackages(n int, what string) string {
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }
+
+// FactsOf reads one advisory's severity, malicious mark and CVEs.
+func FactsOf(v *sources.Vuln) Facts {
+	f := Facts{CVEs: v.CVEs(), Withdrawn: v.Withdrawn != ""}
+	if f.CVEs == nil {
+		f.CVEs = []string{}
+	}
+	if strings.HasPrefix(v.ID, "MAL-") || hasCWE(v, "CWE-506") {
+		f.Malicious = true
+	}
+	for _, a := range v.Aliases {
+		if strings.HasPrefix(a, "MAL-") {
+			f.Malicious = true
+		}
+	}
+	for _, sv := range allSeverities(v) {
+		if score, ok := cvssScore(sv); ok && (f.CVSS == nil || score > *f.CVSS) {
+			sc := score
+			f.CVSS = &sc
+			f.CVSSVector = sv.Score
+		}
+	}
+	f.SourceLabel = sourceLabel(v)
+	return f
+}

@@ -107,3 +107,22 @@ func TestRangesAndUnknownEcosystemsAreNotChecked(t *testing.T) {
 		t.Fatalf("%+v", rep.NotChecked)
 	}
 }
+
+func TestLookupGivesFactsAndFixes(t *testing.T) {
+	res := Lookup(context.Background(), inv(pkg("Maven", "org.apache.logging.log4j:log4j-core", "2.14.1", "production")), recording().Sources().OSV, 2)
+	if !res.Complete || len(res.Matches) != 1 {
+		t.Fatalf("%+v", res)
+	}
+	m := res.Matches[0]
+	if m.Fixes["GHSA-jfh8-c2jp-5v3q"].SameMajor != "2.15.0" {
+		t.Fatalf("fixes %+v", m.Fixes)
+	}
+	f := res.Facts["GHSA-jfh8-c2jp-5v3q"]
+	if f.CVSS == nil || *f.CVSS != 10.0 || f.Malicious || !slices.Equal(f.CVEs, []string{"CVE-2021-44228"}) {
+		t.Fatalf("facts %+v", f)
+	}
+	mal := Lookup(context.Background(), inv(pkg("npm", "flatmap-stream", "0.1.1", "production")), recording().Sources().OSV, 2)
+	if !mal.Facts["MAL-2025-20690"].Malicious {
+		t.Fatalf("%+v", mal.Facts)
+	}
+}
