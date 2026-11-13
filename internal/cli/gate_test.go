@@ -166,3 +166,21 @@ func TestGateMissingPathIsUsage(t *testing.T) {
 		t.Fatalf("a file: exit %d: %s", code, errOut)
 	}
 }
+
+// inventory and gate agree on "nothing found": a lockfile that lists no packages was read, so it is not
+// "no dependency files"; an empty folder is.
+func TestInventoryNothingFoundAgreesWithGate(t *testing.T) {
+	empty := testutil.Tree(t, map[string]string{"README.md": "hello"})
+	_, out, _ := run(t, &sources.Recording{}, "inventory", empty)
+	if !strings.Contains(out, "No dependency files found in this folder") {
+		t.Fatalf("empty folder:\n%s", out)
+	}
+	lock := testutil.Tree(t, map[string]string{
+		"package.json":      `{"name":"x","version":"1.0.0"}`,
+		"package-lock.json": `{"name":"x","version":"1.0.0","lockfileVersion":3,"packages":{"":{"name":"x","version":"1.0.0"}}}`,
+	})
+	_, out, _ = run(t, &sources.Recording{}, "inventory", lock)
+	if strings.Contains(out, "No dependency files found") {
+		t.Fatalf("a lockfile with no packages was read:\n%s", out)
+	}
+}

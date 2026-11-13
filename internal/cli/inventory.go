@@ -173,7 +173,7 @@ func printInventory(w io.Writer, st style, inv *inventory.Inventory) {
 		}
 		fmt.Fprintln(w)
 	}
-	if len(inv.Packages) == 0 && len(inv.OSPackages) == 0 && len(inv.FilesNotRead) == 0 && len(inv.Unsupported) == 0 {
+	if inv.NothingFound() {
 		fmt.Fprintln(w, st.deepOrange("No dependency files found in this folder.")+" Nothing was checked; this is not a clean result.")
 		fmt.Fprintln(w)
 	}
