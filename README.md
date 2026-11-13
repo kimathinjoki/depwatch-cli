@@ -55,6 +55,11 @@ What was not read always comes first, in deep orange. `--json` writes the invent
 [`schema/inventory.schema.json`](schema/inventory.schema.json) defines it; this is the shape the
 depwatch server accepts.
 
+Symbolic links: a link to a file inside the project is read under the link's own path, and a link to
+a folder inside it is not entered twice (the folder is walked under its own path). A link that leads
+outside the project, or nowhere, is never followed; when it is a folder, or a file depwatch would read
+(a dependency file, a Dockerfile, a version file), it is listed as not read and the run is incomplete.
+
 Flags: `--image <ref>` reads a container image (a local tarball from `docker save` or an OCI archive,
 or a registry reference); `--rootfs <dir>` reads the package databases in a folder laid out like a
 root filesystem. Both may be repeated.

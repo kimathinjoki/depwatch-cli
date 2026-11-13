@@ -2,6 +2,8 @@ package collect
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -145,5 +147,74 @@ func TestDockerfileBaseImageIsListedNotRead(t *testing.T) {
 	}
 	if inv.Complete() {
 		t.Fatal("an unpulled base image must make the inventory incomplete")
+	}
+}
+
+const npmLock = `{"lockfileVersion":3,"packages":{"":{"dependencies":{"left-pad":"1"}},"node_modules/left-pad":{"version":"1.3.0"}}}`
+
+func symlink(t *testing.T, target, link string) {
+	t.Helper()
+	if err := os.Symlink(target, link); err != nil {
+		t.Skipf("symbolic links are not available here: %v", err)
+	}
+}
+
+// A lockfile that is a symbolic link to a file inside the project is read under the link's path.
+func TestSymlinkInsideProjectIsRead(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{
+		"shared/locks/package-lock.json": npmLock,
+		"depwatch.yml":                   "ignore:\n  - shared\n",
+	})
+	if err := os.MkdirAll(filepath.Join(dir, "app"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	symlink(t, "../shared/locks/package-lock.json", filepath.Join(dir, "app", "package-lock.json"))
+	inv := take(t, dir)
+	lp := find(inv, "left-pad")
+	if lp == nil || lp.SourceFile != "app/package-lock.json" {
+		t.Fatalf("the linked lockfile was not read under its own path: %+v (read %+v)", lp, inv.FilesRead)
+	}
+	if !inv.Complete() {
+		t.Fatalf("a link inside the project is read, not a gap: %+v", inv.FilesNotRead)
+	}
+}
+
+// A lockfile that is a symbolic link leading outside the project is not followed: it is listed as
+// not read, and the run is incomplete, never clean.
+func TestSymlinkOutsideProjectIsNotRead(t *testing.T) {
+	outside := testutil.Tree(t, map[string]string{"pom.xml": "<project></project>", "notes.txt": "x"})
+	dir := testutil.Tree(t, map[string]string{"README.md": "hello"})
+	symlink(t, filepath.Join(outside, "pom.xml"), filepath.Join(dir, "pom.xml"))
+	symlink(t, filepath.Join(outside, "notes.txt"), filepath.Join(dir, "notes.txt"))
+	inv := take(t, dir)
+	if len(inv.FilesNotRead) != 1 || inv.FilesNotRead[0].Path != "pom.xml" || !strings.Contains(inv.FilesNotRead[0].Reason, "outside the project folder") {
+		t.Fatalf("files not read: %+v", inv.FilesNotRead)
+	}
+	if inv.Complete() {
+		t.Fatal("a dependency file not followed must make the run incomplete")
+	}
+}
+
+// A folder that is a symbolic link leading outside the project is listed as not read, unless it is
+// ignored in depwatch.yml or is a folder the walk never enters.
+func TestSymlinkedFolderOutsideProject(t *testing.T) {
+	outside := testutil.Tree(t, map[string]string{"package-lock.json": npmLock})
+	dir := testutil.Tree(t, map[string]string{"depwatch.yml": "ignore:\n  - ignored\n"})
+	symlink(t, outside, filepath.Join(dir, "linked"))
+	symlink(t, outside, filepath.Join(dir, "ignored"))
+	symlink(t, outside, filepath.Join(dir, "node_modules"))
+	inv := take(t, dir)
+	if len(inv.FilesNotRead) != 1 || inv.FilesNotRead[0].Path != "linked" || !strings.Contains(inv.FilesNotRead[0].Reason, "folder outside the project folder") {
+		t.Fatalf("files not read: %+v", inv.FilesNotRead)
+	}
+}
+
+// A dependency file that is a symbolic link to nothing is listed as not read.
+func TestBrokenSymlinkIsNotRead(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{})
+	symlink(t, "missing/Gemfile.lock", filepath.Join(dir, "Gemfile.lock"))
+	inv := take(t, dir)
+	if len(inv.FilesNotRead) != 1 || inv.FilesNotRead[0].Path != "Gemfile.lock" {
+		t.Fatalf("files not read: %+v", inv.FilesNotRead)
 	}
 }

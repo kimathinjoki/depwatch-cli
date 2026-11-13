@@ -75,16 +75,17 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 	inv.Part.ProductionBranch = cfg.ProductionBranch
 
 	fsys := scalibrfs.DirFS(root)
-	files, err := discover.Walk(fsys, cfg.IgnoredDirs())
+	walked, err := discover.WalkRoot(fsys, root, cfg.IgnoredDirs())
 	if err != nil {
 		return nil, nil, err
 	}
+	files, notFollowed := splitLinks(walked)
 	res, err := extract.Project(ctx, root, files)
 	if err != nil {
 		return nil, nil, err
 	}
 	inv.FilesRead = res.FilesRead
-	inv.FilesNotRead = res.FilesNotRead
+	inv.FilesNotRead = append(res.FilesNotRead, notFollowed...)
 	inv.Unsupported = res.Unsupported
 	inv.Unpinned = res.Unpinned
 	inv.Packages = packages(fsys, res)
@@ -149,6 +150,29 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 	sortInventory(inv)
 	inv.Normalize()
 	return inv, cfg, nil
+}
+
+// splitLinks takes out the symbolic links that were not followed. A link to a folder outside the
+// part, or one that names a file depwatch would read (a dependency file, a Dockerfile, a version
+// file), is listed as not read: what it leads to was never looked at. Other links (a README, an
+// editor setting) are dropped, as they hold no dependencies.
+func splitLinks(walked []discover.File) ([]discover.File, []inventory.FileNotRead) {
+	var files []discover.File
+	var notRead []inventory.FileNotRead
+	for _, f := range walked {
+		if f.NotFollowed == "" {
+			files = append(files, f)
+			continue
+		}
+		var size int64
+		if f.Info != nil {
+			size = f.Info.Size()
+		}
+		if f.Dir || extract.Wants(f.Path, size) || image.IsDockerfile(f.Path) || config.VersionFiles[path.Base(f.Path)] {
+			notRead = append(notRead, inventory.FileNotRead{Path: f.Path, Reason: f.NotFollowed})
+		}
+	}
+	return files, notRead
 }
 
 func baseImages(fsys fs.FS, files []discover.File, cfg *config.Config) []image.BaseImage {
