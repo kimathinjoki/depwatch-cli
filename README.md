@@ -275,15 +275,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install depwatch
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+      - name: Build depwatch (no release is published yet)
         run: |
-          curl -sSL -o depwatch.tar.gz https://github.com/kimathinjoki/depwatch-cli/releases/download/v0.1.0/depwatch_0.1.0_linux_amd64.tar.gz
-          tar -xzf depwatch.tar.gz depwatch
+          git clone https://github.com/kimathinjoki/depwatch-cli "$RUNNER_TEMP/depwatch-cli"
+          make -C "$RUNNER_TEMP/depwatch-cli" build
+          echo "$RUNNER_TEMP/depwatch-cli/bin" >> "$GITHUB_PATH"
       - name: Build the image
         run: docker build -t app:ci . && docker save app:ci -o app.tar
       - name: Gate
-        run: ./depwatch gate --image app.tar --fail-on malicious,kev,severe
+        run: depwatch gate --image app.tar --fail-on malicious,kev,severe
 ```
+
+Once releases are published, [`depwatch-action`](../depwatch-action) installs a release whose
+checksums it carries (its `version` input is required) and runs the command.
 
 Reading the built image (`--image app.tar`) checks the operating system packages production will
 actually run.
