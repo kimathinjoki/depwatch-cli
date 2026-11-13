@@ -163,34 +163,13 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 		})
 	}
 
-	// 1. Which advisories affect which package.
-	var qs []sources.Query
-	for _, s := range subjects {
-		qs = append(qs, s.q)
-	}
-	ids := map[string][]string{}
-	if len(qs) > 0 {
-		var err error
-		ids, err = src.OSV.Query(ctx, qs)
-		if err != nil {
-			fail(err)
-			ids = map[string][]string{}
+	// 1 and 2. Which advisories affect which package, and each advisory read once.
+	ids, vulns, allIDs := lookup(ctx, subjects, src.OSV, opt.Workers, fail)
+	if gr, ok := src.OSV.(sources.GapReporter); ok {
+		for _, g := range gr.Gaps() {
+			rep.NotChecked = append(rep.NotChecked, NotChecked{What: g.What, Why: g.Why, Incomplete: true})
 		}
 	}
-
-	// 2. Read each advisory once.
-	var allIDs []string
-	seen := map[string]bool{}
-	for _, list := range ids {
-		for _, id := range list {
-			if !seen[id] {
-				seen[id] = true
-				allIDs = append(allIDs, id)
-			}
-		}
-	}
-	sort.Strings(allIDs)
-	vulns := fetchAll(ctx, src.OSV, allIDs, opt.Workers, fail)
 
 	// 3. Join aliases into findings.
 	groups := group(allIDs, vulns)
@@ -306,6 +285,34 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 		}
 	}
 	return rep
+}
+
+func lookup(ctx context.Context, subjects []subject, osv sources.OSV, workers int, fail func(error)) (map[string][]string, map[string]*sources.Vuln, []string) {
+	var qs []sources.Query
+	for _, s := range subjects {
+		qs = append(qs, s.q)
+	}
+	ids := map[string][]string{}
+	if len(qs) > 0 {
+		var err error
+		ids, err = osv.Query(ctx, qs)
+		if err != nil {
+			fail(err)
+			ids = map[string][]string{}
+		}
+	}
+	var allIDs []string
+	seen := map[string]bool{}
+	for _, list := range ids {
+		for _, id := range list {
+			if !seen[id] {
+				seen[id] = true
+				allIDs = append(allIDs, id)
+			}
+		}
+	}
+	sort.Strings(allIDs)
+	return ids, fetchAll(ctx, osv, allIDs, workers, fail), allIDs
 }
 
 func subjectsOf(inv *inventory.Inventory) ([]subject, map[string]int, int) {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -33,6 +34,8 @@ type Env struct {
 	// Sources builds the advisory sources; nil means the live ones.
 	Sources func() (sources.Set, error)
 	Getenv  func(string) string
+	// HTTP, when set, is used for calls to a depwatch server and to OSV's exports.
+	HTTP *http.Client
 }
 
 // usageError is a problem with the command line or depwatch.yml.
@@ -142,7 +145,7 @@ run incomplete.`,
 	}
 	root.PersistentFlags().Bool("json", false, "write all output as JSON")
 	root.SetFlagErrorFunc(func(c *cobra.Command, err error) error { return err })
-	root.AddCommand(newVersion(env), newInventory(env), newGate(env))
+	root.AddCommand(newVersion(env), newInventory(env), newGate(env), newScan(env), newLogin(env), newMirror(env), newMatch(env))
 	root.CompletionOptions.DisableDefaultCmd = true
 	return root
 }

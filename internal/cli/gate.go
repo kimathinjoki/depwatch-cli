@@ -47,6 +47,7 @@ func newGate(env *Env) *cobra.Command {
 	var allowIncomplete bool
 	var threshold float64
 	var recording string
+	var mirrorDir string
 	c := &cobra.Command{
 		Use:   "gate [path]",
 		Short: "Check the project against OSV, CISA KEV and EPSS, and fail the build on a finding",
@@ -79,6 +80,9 @@ Exit codes:
 				return &usageError{msg: "--epss-threshold must be above 0 and at most 1 (0.10 is 10 percent)"}
 			}
 			src, err := gateSources(env, recording)
+			if mirrorDir != "" && recording == "" {
+				src = mirrorSources(mirrorDir)
+			}
 			if err != nil {
 				return err
 			}
@@ -107,6 +111,7 @@ Exit codes:
 	c.Flags().StringSliceVar(&failOn, "fail-on", []string{"malicious", "kev"}, "fail on findings that are any of: malicious, kev, severe, high")
 	c.Flags().BoolVar(&allowIncomplete, "allow-incomplete", false, "exit 0 instead of 2 when the check is incomplete and nothing meets the threshold")
 	c.Flags().Float64Var(&threshold, "epss-threshold", rank.DefaultEPSSThreshold, "EPSS probability at or above which a critical finding is severe")
+	c.Flags().StringVar(&mirrorDir, "mirror", "", "match against a local OSV mirror (depwatch mirror sync) instead of the OSV API")
 	c.Flags().StringVar(&recording, "recording", "", "answer from a recorded set of source responses instead of the network (tests)")
 	_ = c.Flags().MarkHidden("recording")
 	return c
