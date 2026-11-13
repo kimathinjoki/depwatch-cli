@@ -129,3 +129,33 @@ func TestDeployed(t *testing.T) {
 		t.Fatalf("%d %v %s", code, got, out.String())
 	}
 }
+
+// A source file the server sends that lies outside the repository is refused and the fix named: nothing
+// outside is read, changed or put back.
+func TestFixRefusesSourceFileOutsideRepository(t *testing.T) {
+	parent := t.TempDir()
+	repo := filepath.Join(parent, "repo")
+	outside := filepath.Join(parent, "outside")
+	for _, d := range []string{repo, outside} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_ = os.WriteFile(filepath.Join(outside, "requirements.txt"), []byte("django==4.2.0\n"), 0o644)
+	fixes := `{"part":"api","production_branch":"main","fixes":[{"finding_id":9,"primary_id":"CVE-2023-31047","ids":["CVE-2023-31047"],"level":"high",
+	  "summary":"bypass","reason":"high","labels":[],"url":"https://dw/findings/9",
+	  "targets":[{"kind":"package","ecosystem":"PyPI","name":"django","version":"4.2.0","fix":"4.2.2","relation":"unknown","paths":[],"source_file":"../outside/requirements.txt"}]}]}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(fixes)) }))
+	defer srv.Close()
+	var out strings.Builder
+	env := Env{Stdout: &out, Stderr: io.Discard, Getenv: func(k string) string {
+		return map[string]string{"DEPWATCH_SERVER": srv.URL, "DEPWATCH_TOKEN": "t"}[k]
+	}}
+	if code := Run([]string{"fix", "--dry-run", repo}, env); code != ExitIncomplete || !strings.Contains(out.String(), "refused") {
+		t.Fatalf("exit %d: %s", code, out.String())
+	}
+	raw, _ := os.ReadFile(filepath.Join(outside, "requirements.txt"))
+	if string(raw) != "django==4.2.0\n" {
+		t.Fatalf("a file outside the repository changed: %q", raw)
+	}
+}

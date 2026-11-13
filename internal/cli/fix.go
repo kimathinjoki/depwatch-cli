@@ -11,11 +11,12 @@ import (
 
 	"github.com/kimathinjoki/depwatch-cli/internal/client"
 	"github.com/kimathinjoki/depwatch-cli/internal/fix"
+	"github.com/kimathinjoki/depwatch-cli/internal/image"
 	"github.com/kimathinjoki/depwatch-cli/internal/version"
 )
 
 // fixTools lets tests replace the package managers and the registry.
-var fixTools = fix.Tools{Run: fix.ExecRunner, Resolve: fix.RegistryDigest}
+var fixTools = fix.Tools{Run: fix.ExecRunner, Resolve: fix.RegistryDigest, ReadImage: image.ReadImage}
 
 func newFix(env *Env) *cobra.Command {
 	var server, token, base string
@@ -94,8 +95,17 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 				var notes []string
 				var reached []fix.Target
 				for _, t := range item.Targets {
-					dir := filepath.Join(root, filepath.FromSlash(filepath.Dir(t.SourceFile)))
-					snap, _ := fix.TakeSnapshot(dir)
+					// What the server sent is checked before anything is read or changed.
+					if err := fix.Check(root, &t); err != nil {
+						notes = append(notes, fmt.Sprintf("%s %s: %v; the fix is named: upgrade to %s", t.Name, t.Version, err, t.Fix))
+						continue
+					}
+					var snap fix.Snapshot
+					dir := ""
+					if t.Kind == "package" {
+						dir = filepath.Join(root, filepath.FromSlash(filepath.Dir(t.SourceFile)))
+						snap, _ = fix.TakeSnapshot(dir)
+					}
 					ch, err := fix.Apply(ctx, root, t, fixTools)
 					if err == nil && t.Kind == "package" {
 						err = fix.Verify(ctx, root, t)
@@ -109,8 +119,11 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 					}
 					changes[t.SourceFile+"|"+t.Name] = ch
 					reached = append(reached, t)
-					if dryRun && snap != nil {
-						_ = snap.Restore(dir)
+					if dryRun {
+						if snap != nil {
+							_ = snap.Restore(dir)
+						}
+						ch.Undo()
 					}
 				}
 				entry := map[string]any{"finding_id": item.FindingID, "primary_id": item.PrimaryID, "changes": changes, "named": notes}
@@ -125,7 +138,11 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 				}
 				if dryRun {
 					for _, t := range reached {
-						fmt.Fprintf(env.Stdout, "%s  would upgrade %s %s to %s: %s\n", st.bold(item.PrimaryID), t.Name, t.Version, t.Fix, changes[t.SourceFile+"|"+t.Name].Words)
+						ch := changes[t.SourceFile+"|"+t.Name]
+						fmt.Fprintf(env.Stdout, "%s  would upgrade %s %s to %s: %s\n", st.bold(item.PrimaryID), t.Name, t.Version, t.Fix, ch.Words)
+						if ch.Unverified != "" {
+							fmt.Fprintf(env.Stdout, "    %s\n", st.deepOrange("not verified: "+ch.Unverified))
+						}
 					}
 					report = append(report, entry)
 					continue

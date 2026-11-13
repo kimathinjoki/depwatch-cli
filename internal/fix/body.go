@@ -76,6 +76,9 @@ func Body(item Item, part string, changes map[string]Change) string {
 		if t.Major {
 			b.WriteString(". **This is a new major version**: check its changelog")
 		}
+		if c.Unverified != "" {
+			fmt.Fprintf(&b, ". **Not verified:** depwatch could not show this fix in a fresh inventory (%s). Check that the rebuilt image carries `%s` %s or later before merging", c.Unverified, t.Name, t.Fix)
+		}
 		b.WriteString(".\n")
 		for i, p := range t.Paths {
 			if i == 3 {

@@ -164,6 +164,18 @@ the inventory again to check the fix version is reached (otherwise it puts the f
 fix), and opens one pull request per finding per part with `GITHUB_TOKEN`, or updates the open one. It
 never merges. `--dry-run` shows the changes and puts the files back.
 
+What the server sends is checked before anything runs: a source file outside the repository (after
+following symbolic links), a package name that is not one of its ecosystem's or starts with `-`, and a
+fix that is not a plain version (no range, URL or `github:` spec) are refused and the fix named. Direct
+upgrades pin the exact fix version. npm, yarn, pnpm and bun run with install scripts off, Composer with
+scripts and plugins off, and every package manager gets a minimal environment: `PATH`, `HOME`, proxies,
+certificates and its own settings, but never a variable that looks like a credential (`GITHUB_TOKEN`,
+`DEPWATCH_TOKEN`, `NODE_AUTH_TOKEN` and the like), so a private registry needs its credentials in the
+package manager's own configuration file. A package no longer found in its file after the change is not
+a verified fix. A base image moved to a new digest is read again to check it carries the fixed
+operating system package; below the fix, the Dockerfile is put back; when the new image cannot be read,
+the pull request says plainly that the fix is not verified.
+
 ### `depwatch deployed --sha <commit>`
 
 Reports a deployment from the deploy step, so production is what was deployed. Run `depwatch scan` in

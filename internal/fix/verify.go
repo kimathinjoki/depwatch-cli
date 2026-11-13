@@ -53,16 +53,24 @@ func (s Snapshot) Restore(dir string) error {
 }
 
 // Verify takes the inventory again and checks the package is at or above the fix version everywhere in
-// the target's file.
+// the target's file. A package no longer found in the file is not a verified fix: the change is undone
+// and the fix named.
 func Verify(ctx context.Context, root string, t Target) error {
+	if err := Check(root, &t); err != nil {
+		return err
+	}
 	inv, _, err := collect.Take(ctx, collect.Options{Root: root})
 	if err != nil {
 		return err
 	}
 	eco := strings.Split(t.Ecosystem, ":")[0]
+	same := func(a, b string) bool { return strings.EqualFold(a, b) }
+	if eco == "PyPI" || (eco == "" && strings.HasPrefix(path.Base(t.SourceFile), "requirements")) {
+		same = func(a, b string) bool { return normPy(a) == normPy(b) }
+	}
 	found := false
 	for _, p := range inv.Packages {
-		if p.SourceFile != t.SourceFile || !strings.EqualFold(p.Name, t.Name) {
+		if p.SourceFile != t.SourceFile || !same(p.Name, t.Name) {
 			continue
 		}
 		found = true
@@ -80,6 +88,7 @@ func Verify(ctx context.Context, root string, t Target) error {
 				return fmt.Errorf("%s could not be read after the change: %s", path.Base(t.SourceFile), f.Reason)
 			}
 		}
+		return fmt.Errorf("%s was not found in %s after the change, so the fix could not be shown", t.Name, t.SourceFile)
 	}
 	return nil
 }
