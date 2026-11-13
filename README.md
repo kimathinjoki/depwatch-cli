@@ -136,6 +136,21 @@ Code leaves the machine only as a few lines around each piece of evidence, and o
 owner allowed snippets. With `--assist`, the evidence and the lines around it go to Claude from this
 machine with your key (`--model`, default `claude-opus-5-5`); the depwatch server never sees the key.
 
+### `depwatch fix [path]`
+
+Run in the project's own CI (`depwatch-action` does it). For each finding the workspace set to be fixed
+by pull request, it upgrades the package with the project's own package manager (npm, yarn, pnpm, bun,
+Composer, Bundler, pip requirements, poetry, uv, pipenv, Go modules, Cargo; Dockerfile base images pinned
+by digest), using the package manager's override for a package that comes in through another, takes
+the inventory again to check the fix version is reached (otherwise it puts the files back and names the
+fix), and opens one pull request per finding per part with `GITHUB_TOKEN`, or updates the open one. It
+never merges. `--dry-run` shows the changes and puts the files back.
+
+### `depwatch deployed --sha <commit>`
+
+Reports a deployment from the deploy step, so production is what was deployed. Run `depwatch scan` in
+the same step so the deployed commit has an inventory.
+
 ### `depwatch login --server <url> --token <token>`
 
 Stores a part's token in your config folder (`~/.config/depwatch/credentials.json` on Linux, readable
