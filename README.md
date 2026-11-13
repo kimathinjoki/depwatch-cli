@@ -68,19 +68,25 @@ non-zero when one meets the threshold, so a CI build can stop on it.
 
 ```text
 $ depwatch gate
-depwatch gate  billing  main 9c1d2e0
+depwatch gate  billing  main 50246b7
 
 SEVERE  CVE-2021-44228  GHSA-jfh8-c2jp-5v3q  [fails the gate]
   Remote code injection in Log4j
   exploited now
-  production, in CISA KEV since 2021-12-10, EPSS 94.4%, CVSS 10.0
+  production, in CISA KEV since 2021-12-10, EPSS 100.0%, CVSS 10.0
   why: listed in CISA KEV: exploited now
   org.apache.logging.log4j:log4j-core 2.14.1  pom.xml  production
     org.apache.logging.log4j:log4j-core
     fix: 2.15.0
-...
-1 severe, 2 high. Failing on: kev, malicious.
-Failed: 1 finding(s) meet the threshold: CVE-2021-44228.
+
+HIGH  CVE-2021-44832  GHSA-8489-44mv-ggj8
+  Improper Input Validation and Injection in Apache Log4j2
+  production, EPSS 97.9%, CVSS 6.6
+  why: medium (CVSS 6.6) raised by EPSS 97.9%
+  ...
+
+2 severe, 2 high, 4 medium. Failing on: kev, malicious.
+Failed: 2 finding(s) meet the threshold: CVE-2021-44228, CVE-2021-45046.
 ```
 
 `--fail-on` takes any of:

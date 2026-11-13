@@ -27,7 +27,7 @@ live:
 
 # Six binaries (Linux, macOS, Windows on amd64 and arm64) and a checksums file in dist/. Nothing is published.
 snapshot:
-	goreleaser release --snapshot --clean
+	DEPWATCH_COMMIT=$(COMMIT) goreleaser release --snapshot --clean
 	./scripts/check-snapshot.sh
 
 clean:

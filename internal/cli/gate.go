@@ -361,10 +361,10 @@ func printFinding(w io.Writer, st style, f match.Finding, failing bool) {
 			fmt.Fprintf(w, "    %s\n", st.gray("path not recorded"))
 		}
 		switch {
-		case p.FixedSameMajor != "" && p.FixedSameMajor != p.FixedLowest:
-			fmt.Fprintf(w, "    fix: %s on the same major line (lowest overall %s)\n", st.green(p.FixedSameMajor), p.FixedLowest)
+		case p.FixedSameMajor != "":
+			fmt.Fprintf(w, "    fix: %s\n", st.green(p.FixedSameMajor))
 		case p.FixedLowest != "":
-			fmt.Fprintf(w, "    fix: %s\n", st.green(p.FixedLowest))
+			fmt.Fprintf(w, "    fix: %s %s\n", st.green(p.FixedLowest), st.deepOrange("(a new major version)"))
 		default:
 			fmt.Fprintf(w, "    %s\n", st.deepOrange("no fixed version published"))
 		}

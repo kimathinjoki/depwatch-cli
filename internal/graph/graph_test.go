@@ -426,3 +426,14 @@ func TestPubspecLock(t *testing.T) {
 		t.Fatalf("%+v", g)
 	}
 }
+
+func TestGradleLockTestOnly(t *testing.T) {
+	lock := "# This is a Gradle generated file\norg.apache.logging.log4j:log4j-core:2.14.1=compileClasspath,runtimeClasspath\njunit:junit:4.13.2=testCompileClasspath,testRuntimeClasspath\nempty=annotationProcessor\n"
+	g, err := Read("gradle.lockfile", []byte(lock), noSibling)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !g.DevNames["junit:junit"] || g.DevNames["org.apache.logging.log4j:log4j-core"] {
+		t.Fatalf("%+v", g.DevNames)
+	}
+}

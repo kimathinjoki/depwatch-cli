@@ -15,7 +15,7 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/kimathinjoki/depwatch-cli/internal/version.Version={{ .Version }}
-      - -X github.com/kimathinjoki/depwatch-cli/internal/version.Commit={{ .ShortCommit }}
+      - -X github.com/kimathinjoki/depwatch-cli/internal/version.Commit={{ envOrDefault "DEPWATCH_COMMIT" .ShortCommit }}
       - -X github.com/kimathinjoki/depwatch-cli/internal/version.Date={{ .Date }}
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]

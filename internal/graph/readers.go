@@ -37,6 +37,7 @@ var readers = map[string]reader{
 	"pubspec.lock":        readPubspecLock,
 	"Pipfile.lock":        readPipfileLock,
 	"pom.xml":             readDirectOnly,
+	"gradle.lockfile":     readGradleLock,
 }
 
 // Supported reports whether depwatch reads anything about edges or relations from this file.
@@ -1089,6 +1090,39 @@ func readPubspecLock(lock []byte, _ Sibling) (*Graph, error) {
 			}
 		case p.Dependency == "transitive":
 			g.Relations[n] = "transitive"
+		}
+	}
+	return g, nil
+}
+
+// readGradleLock reads which configurations each artifact is locked for. An artifact locked only
+// for test configurations (testCompileClasspath, testRuntimeClasspath and the like) is development.
+// Gradle's lockfile records no edges and no direct or transitive relation.
+func readGradleLock(lock []byte, _ Sibling) (*Graph, error) {
+	g := &Graph{EdgesRecorded: false, Relations: map[string]string{}, DevNames: map[string]bool{}}
+	sc := bufio.NewScanner(strings.NewReader(string(lock)))
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "empty=") {
+			continue
+		}
+		coord, configs, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(coord, ":")
+		if len(parts) < 3 {
+			continue
+		}
+		name := parts[0] + ":" + parts[1]
+		testOnly := configs != ""
+		for _, c := range strings.Split(configs, ",") {
+			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(c)), "test") {
+				testOnly = false
+			}
+		}
+		if testOnly {
+			g.DevNames[name] = true
 		}
 	}
 	return g, nil

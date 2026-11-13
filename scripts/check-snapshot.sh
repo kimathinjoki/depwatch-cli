@@ -15,7 +15,8 @@ test -f dist/checksums.txt || { echo "dist/checksums.txt is missing"; exit 1; }
 os=$(go env GOOS); arch=$(go env GOARCH)
 bin=$(echo "$bins" | grep "_${os}_${arch}" | head -1)
 out=$("$bin" version)
+commit=$(git rev-parse --short HEAD)
 case "$out" in
-  *snapshot*) echo "ok: $count binaries, checksums match, $bin prints: $out" ;;
-  *) echo "the version is not stamped: $out"; exit 1 ;;
+  *snapshot*"commit $commit"*) echo "ok: $count binaries, checksums match, $bin prints: $out" ;;
+  *) echo "the version or commit is not stamped (want commit $commit): $out"; exit 1 ;;
 esac
