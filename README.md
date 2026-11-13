@@ -62,7 +62,8 @@ outside the project, or nowhere, is never followed; when it is a folder, or a fi
 
 Flags: `--image <ref>` reads a container image (a local tarball from `docker save` or an OCI archive,
 or a registry reference); `--rootfs <dir>` reads the package databases in a folder laid out like a
-root filesystem. Both may be repeated.
+root filesystem (a folder with no package database in it is listed as not read, and the run is
+incomplete). Both may be repeated.
 
 Exit codes: `0` everything found was read; `2` incomplete; `3` a usage or `depwatch.yml` error.
 
@@ -111,8 +112,9 @@ A folder with no dependency files at all (for example a CI job that never checke
 not clean: `gate` says "No dependency files found in this folder. Nothing was checked; this is not a
 clean result." and exits 2.
 
-`gate` pulls base images named in `depwatch.yml` or a Dockerfile's final stage, unless `--image` or
-`--rootfs` already gave it the built image. A base image it cannot pull makes the run incomplete.
+`gate` pulls base images named in `depwatch.yml` or a Dockerfile's final stage, unless `--image`
+already gave it the built image. `--rootfs` does not stand in for base images (nothing says which image
+a folder came from), so they are still pulled. A base image it cannot pull makes the run incomplete.
 
 ### `depwatch scan [path]`
 

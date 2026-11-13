@@ -127,13 +127,20 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 			inv.FilesNotRead = append(inv.FilesNotRead, inventory.FileNotRead{Path: label, Reason: err.Error()})
 			continue
 		}
+		if len(r.Packages) == 0 && len(r.FilesNotRead) == 0 {
+			// Unlike an image, a folder is named by hand: one with no package database is most
+			// likely the wrong folder, and nothing in it was checked.
+			inv.FilesNotRead = append(inv.FilesNotRead, inventory.FileNotRead{Path: label,
+				Reason: "no operating system package database found in this folder; nothing in it was checked"})
+		}
 		inv.OSPackages = append(inv.OSPackages, r.Packages...)
 		inv.FilesRead = append(inv.FilesRead, r.FilesRead...)
 		inv.FilesNotRead = append(inv.FilesNotRead, r.FilesNotRead...)
 	}
 	// Base images named in depwatch.yml and in Dockerfiles. When the built image itself was read
-	// (--image or --rootfs), it already holds its base image's packages.
-	if len(o.Images) == 0 && len(o.RootFS) == 0 {
+	// (--image), it already holds its base image's packages. A --rootfs folder does not stand in for
+	// them: nothing says which image, if any, it was exported from.
+	if len(o.Images) == 0 {
 		for _, ref := range baseImages(fsys, files, cfg) {
 			switch {
 			case ref.Unresolved != "":

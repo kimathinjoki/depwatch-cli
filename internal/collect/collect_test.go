@@ -218,3 +218,36 @@ func TestBrokenSymlinkIsNotRead(t *testing.T) {
 		t.Fatalf("files not read: %+v", inv.FilesNotRead)
 	}
 }
+
+// A --rootfs folder with no operating system package database in it was not a filesystem depwatch
+// could check: it is listed as not read, and the run is incomplete.
+func TestRootFSWithNoPackageDatabaseIsNotRead(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{"go.mod": "module x\n\ngo 1.22\n"})
+	empty := testutil.Tree(t, map[string]string{"etc/hostname": "box"})
+	inv, _, err := Take(context.Background(), Options{Root: dir, RootFS: []string{empty}, CLIVersion: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inv.FilesNotRead) != 1 || !strings.Contains(inv.FilesNotRead[0].Reason, "no operating system package database") {
+		t.Fatalf("files not read: %+v", inv.FilesNotRead)
+	}
+	if inv.Complete() {
+		t.Fatal("a root filesystem with nothing to read must make the run incomplete")
+	}
+}
+
+// --rootfs does not stand in for the Dockerfile's base image: the base image is still listed (and
+// pulled by gate), so an image nobody read never passes as clean.
+func TestRootFSDoesNotHideBaseImages(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{"Dockerfile": "FROM debian:12-slim\n"})
+	inv, _, err := Take(context.Background(), Options{Root: dir, RootFS: []string{"../../testdata/fixtures/rootfs-debian"}, CLIVersion: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(inv.Images) != 1 || inv.Images[0].Reference != "debian:12-slim" {
+		t.Fatalf("images: %+v", inv.Images)
+	}
+	if len(inv.OSPackages) == 0 {
+		t.Fatal("the root filesystem was not read")
+	}
+}
