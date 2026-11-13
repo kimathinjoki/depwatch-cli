@@ -4,6 +4,7 @@ go 1.27.4
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/anthropics/anthropic-sdk-go/v2 v2.9.0
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/osv-scalibr v0.5.3
 	github.com/pandatix/go-cvss v0.6.4
@@ -28,7 +29,9 @@ require (
 	github.com/anchore/go-lzo v0.1.0 // indirect
 	github.com/anchore/go-struct-converter v0.1.0 // indirect
 	github.com/ayoubfaouzi/pkcs7 v0.2.3 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f // indirect
+	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/canonical/chisel-manifest v1.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
@@ -70,6 +73,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/icholy/digest v1.1.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
@@ -89,6 +93,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/ossf/osv-schema/bindings/go v0.0.0-20260424063704-83285ce2a866 // indirect
 	github.com/package-url/packageurl-go v0.1.5 // indirect
+	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pjbgf/sha1cd v0.6.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -103,10 +108,12 @@ require (
 	github.com/spdx/gordf v0.0.0-20250128162952-000978ccd6fb // indirect
 	github.com/spdx/tools-golang v0.5.7 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
+	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/jsonc v0.3.3 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tink-crypto/tink-go/v2 v2.6.0 // indirect
 	github.com/tonistiigi/go-csvvalue v0.0.0-20240814133006-030d3b2625d0 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect

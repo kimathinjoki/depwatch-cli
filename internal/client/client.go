@@ -157,3 +157,74 @@ func (c *Client) PostInventory(ctx context.Context, doc []byte) (*ScanResponse, 
 	}
 	return &out, nil
 }
+
+// FindingsResponse is the part's open findings for the code check.
+type FindingsResponse struct {
+	Part            string            `json:"part"`
+	SnippetsAllowed bool              `json:"snippets_allowed"`
+	Findings        []json.RawMessage `json:"findings"`
+}
+
+// GetFindings fetches the token's part's open findings.
+func (c *Client) GetFindings(ctx context.Context) (*FindingsResponse, error) {
+	var out FindingsResponse
+	if err := c.do(ctx, http.MethodGet, "/api/v1/findings", nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// PostCodeChecks sends the code check's results.
+func (c *Client) PostCodeChecks(ctx context.Context, body any) (map[string]any, error) {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	return out, c.do(ctx, http.MethodPost, "/api/v1/code_checks", raw, &out)
+}
+
+func (c *Client) do(ctx context.Context, method, path string, body []byte, out any) error {
+	hc := c.HTTP
+	if hc == nil {
+		hc = &http.Client{Timeout: 2 * time.Minute}
+	}
+	var rd io.Reader
+	if body != nil {
+		rd = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, NormalizeServer(c.Server)+path, rd)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.Token)
+	req.Header.Set("Accept", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if c.UserAgent != "" {
+		req.Header.Set("User-Agent", c.UserAgent)
+	}
+	resp, err := hc.Do(req)
+	if err != nil {
+		return &UnreachableError{Err: err}
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 20<<20))
+	switch {
+	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden:
+		return ErrRefused
+	case resp.StatusCode == http.StatusUnprocessableEntity || resp.StatusCode == http.StatusBadRequest:
+		var e struct {
+			Error string `json:"error"`
+		}
+		_ = json.Unmarshal(data, &e)
+		return &RejectedError{Reason: e.Error}
+	case resp.StatusCode >= 300:
+		return &UnreachableError{Err: fmt.Errorf("it answered %d", resp.StatusCode)}
+	}
+	if err := json.Unmarshal(data, out); err != nil {
+		return &UnreachableError{Err: fmt.Errorf("its answer was not JSON: %w", err)}
+	}
+	return nil
+}
