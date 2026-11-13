@@ -120,6 +120,22 @@ The server and token come from `--server` and `--token`, else `DEPWATCH_SERVER` 
 else the last `depwatch login`. Exit codes: `0` sent; `2` the server did not answer; `3` no token, a
 refused token, or an inventory the server rejected.
 
+### `depwatch check [path]`
+
+Checks whether the code uses each open finding's package, and sends draft verdicts (used, not used,
+unclear) with evidence as file paths and line numbers to the server. A verdict never closes a finding;
+a person decides.
+
+```sh
+depwatch check                 # with DEPWATCH_SERVER and DEPWATCH_TOKEN, as scan
+depwatch check --dry-run       # print the verdicts, send nothing
+depwatch check --assist        # have Claude draft each verdict, with your own ANTHROPIC_API_KEY
+```
+
+Code leaves the machine only as a few lines around each piece of evidence, and only when the workspace
+owner allowed snippets. With `--assist`, the evidence and the lines around it go to Claude from this
+machine with your key (`--model`, default `claude-opus-5-5`); the depwatch server never sees the key.
+
 ### `depwatch login --server <url> --token <token>`
 
 Stores a part's token in your config folder (`~/.config/depwatch/credentials.json` on Linux, readable
