@@ -105,6 +105,46 @@ probability at or above which a critical finding is severe), `--image`, `--rootf
 `gate` pulls base images named in `depwatch.yml` or a Dockerfile's final stage, unless `--image` or
 `--rootfs` already gave it the built image. A base image it cannot pull makes the run incomplete.
 
+### `depwatch scan [path]`
+
+Sends the project's inventory to a depwatch server. Only the inventory leaves the machine; the code
+never does.
+
+```sh
+export DEPWATCH_SERVER=https://depwatch.example.com
+export DEPWATCH_TOKEN=dwp_...      # created on the part's Tokens page, shown once
+depwatch scan
+```
+
+The server and token come from `--server` and `--token`, else `DEPWATCH_SERVER` and `DEPWATCH_TOKEN`,
+else the last `depwatch login`. Exit codes: `0` sent; `2` the server did not answer; `3` no token, a
+refused token, or an inventory the server rejected.
+
+### `depwatch login --server <url> --token <token>`
+
+Stores a part's token in your config folder (`~/.config/depwatch/credentials.json` on Linux, readable
+only by you) so `scan` can use it.
+
+### `depwatch mirror sync` and `depwatch mirror status`
+
+Keep a local copy of OSV for matching with no network per package:
+
+```sh
+depwatch mirror sync --dir ~/osv --ecosystem npm --ecosystem RubyGems
+depwatch mirror status --dir ~/osv
+depwatch gate --mirror ~/osv          # gate against the mirror instead of the OSV API
+```
+
+An unchanged export is not downloaded again; a failed download keeps the previous copy. For a machine
+with no route to OSV, download `https://osv-vulnerabilities.storage.googleapis.com/<Ecosystem>/all.zip`
+elsewhere and install it with `--archive all.zip` (one ecosystem at a time).
+
+### `depwatch match --mirror <dir> --inventory <file>`
+
+The depwatch server's matcher: reads an inventory file and answers, from a mirror, which advisories
+affect each package, with each advisory's entry, facts (CVSS score, source severity, malicious, CVEs)
+and fix versions. It does no ranking. You will rarely run it yourself.
+
 ### `depwatch version`
 
 Prints the version, commit and build date stamped at build time.
