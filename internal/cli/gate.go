@@ -244,7 +244,7 @@ func buildGateResult(inv *inventory.Inventory, rep *match.Report, fail map[strin
 var labelWords = map[string]string{
 	rank.LabelExploitedNow: "exploited now",
 	rank.LabelMalicious:    "malicious",
-	rank.LabelProvisional:  "provisional, no exploit score yet",
+	rank.LabelProvisional:  "provisional",
 	rank.LabelUnscored:     "no severity stated",
 	rank.LabelDevelopment:  "development only",
 }

@@ -126,3 +126,28 @@ func TestLookupGivesFactsAndFixes(t *testing.T) {
 		t.Fatalf("%+v", mal.Facts)
 	}
 }
+
+// When OSV names an advisory but its entry cannot be fetched, the advisory is kept: a MAL- id alone
+// is a severe malicious finding, any other is a provisional finding, and the check is incomplete with
+// OSV's error shown.
+func TestAdvisoryWhoseDetailsFailedIsKept(t *testing.T) {
+	r := recording()
+	r.OSVQueries["npm|evil|1.0.0"] = []string{"MAL-2099-1"}
+	r.OSVQueries["npm|quiet|1.0.0"] = []string{"GHSA-gone-gone-gone"}
+	rep := Check(context.Background(), inv(pkg("npm", "evil", "1.0.0", "development"), pkg("npm", "quiet", "1.0.0", "production")), r.Sources(), Options{})
+	if rep.Complete || !slices.Contains(rep.SourceErrors, sources.NameOSV) {
+		t.Fatalf("complete=%v errors=%v", rep.Complete, rep.SourceErrors)
+	}
+	byID := map[string]Finding{}
+	for _, f := range rep.Findings {
+		byID[f.ID] = f
+	}
+	mal, ok := byID["MAL-2099-1"]
+	if !ok || !mal.Malicious || mal.Level != rank.Severe || len(mal.Places) != 1 {
+		t.Fatalf("malicious: %+v", rep.Findings)
+	}
+	other, ok := byID["GHSA-gone-gone-gone"]
+	if !ok || !slices.Contains(other.Labels, rank.LabelProvisional) || rank.Order(other.Level) < rank.Order(rank.High) {
+		t.Fatalf("provisional: %+v", rep.Findings)
+	}
+}

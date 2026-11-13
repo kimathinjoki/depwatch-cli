@@ -101,7 +101,9 @@ func Lookup(ctx context.Context, inv *inventory.Inventory, osv sources.OSV, work
 		m := Matched{Kind: s.place.Kind, Ecosystem: s.place.Ecosystem, Name: s.place.Name, Version: s.place.Version,
 			SourceFile: s.place.SourceFile, Image: s.place.Image, Fixes: map[string]Fix{}}
 		for _, id := range list {
-			if v := vulns[id]; v != nil {
+			// An advisory whose entry could not be read is not sent to the server as one: the check is
+			// already incomplete with the source's error, and the server keeps one copy per advisory.
+			if v := vulns[id]; v != nil && v.DatabaseSpecific[detailsMissing] != true {
 				m.IDs = append(m.IDs, id)
 				res.Advisories[id] = v
 				res.Facts[id] = FactsOf(v)

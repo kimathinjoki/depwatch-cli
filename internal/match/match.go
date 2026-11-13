@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -256,6 +257,14 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 			SourceLabel: f.SourceLabel, EPSS: ep, EPSSThreshold: opt.EPSSThreshold,
 		})
 		f.Level, f.Labels, f.Reason = r.Level, r.Labels, r.Reason
+		if missingDetails(f) {
+			// Ranked on what is known (a MAL- id is malicious; no severity is high), and provisional
+			// until the details can be read.
+			if !slices.Contains(f.Labels, rank.LabelProvisional) {
+				f.Labels = append(f.Labels, rank.LabelProvisional)
+			}
+			f.Reason += "; provisional: OSV named this advisory but its details could not be fetched"
+		}
 		f.Lane = LaneConfirmed
 		for i := range f.Places {
 			f.Places[i].FixedSameMajor, f.Places[i].FixedLowest = fixes(f.vulns, f.Places[i])
@@ -315,7 +324,27 @@ func lookup(ctx context.Context, subjects []subject, osv sources.OSV, workers in
 		}
 	}
 	sort.Strings(allIDs)
-	return ids, fetchAll(ctx, osv, allIDs, workers, fail), allIDs
+	vulns := fetchAll(ctx, osv, allIDs, workers, fail)
+	// OSV named the advisory, but its entry could not be fetched: it is kept with what is known, its
+	// id, never dropped. The failure is already recorded, so the check is incomplete.
+	for _, id := range allIDs {
+		if vulns[id] == nil {
+			vulns[id] = &sources.Vuln{ID: id, DatabaseSpecific: map[string]any{detailsMissing: true}}
+		}
+	}
+	return ids, vulns, allIDs
+}
+
+// detailsMissing marks an advisory whose entry could not be fetched.
+const detailsMissing = "depwatch_details_missing"
+
+func missingDetails(f *Finding) bool {
+	for _, v := range f.vulns {
+		if v.DatabaseSpecific[detailsMissing] == true {
+			return true
+		}
+	}
+	return false
 }
 
 func subjectsOf(inv *inventory.Inventory) ([]subject, map[string]int, int) {
@@ -497,6 +526,9 @@ func describe(f *Finding, kev map[string]sources.KEVEntry, epss map[string]sourc
 	}
 	sort.Strings(f.IDs)
 	f.ID = primaryID(f.IDs, f.Malicious)
+	if f.Summary == "" && missingDetails(f) {
+		f.Summary = "OSV names " + f.ID + " for this package, but its details could not be fetched"
+	}
 	if f.Summary == "" {
 		f.Summary = "No summary given by the source"
 	}

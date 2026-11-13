@@ -95,6 +95,10 @@ HIGH  CVE-2021-44832  GHSA-8489-44mv-ggj8
 Failed: 2 finding(s) meet the threshold: CVE-2021-44228, CVE-2021-45046.
 ```
 
+When OSV names an advisory for a package but its details cannot be fetched, the advisory is kept, never
+dropped: a `MAL-` id alone is a severe malicious finding, and any other id is a finding labelled
+provisional (ranked as one with no severity stated). OSV's error is shown and the run is incomplete.
+
 `--fail-on` takes any of:
 
 | Value | Fails on |
