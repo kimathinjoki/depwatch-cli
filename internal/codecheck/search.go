@@ -78,14 +78,39 @@ var languageFiles = map[string][]string{
 // buildDirs are build output and caches, never searched (installed dependencies are skipped by discover).
 var buildDirs = map[string]bool{"dist": true, "build": true, "target": true, ".next": true, ".nuxt": true, "out": true, "coverage": true, "tmp": true, "log": true}
 
+// sourceNames are source files with no extension, searched as their language.
+var sourceNames = map[string]string{"Rakefile": ".rb", "Guardfile": ".rb", "Capfile": ".rb"}
+
+// maxFile is the largest source file searched. A larger one is counted as not searched.
+const maxFile = 1 << 20
+
 // Code is the part's source files, read once.
 type Code struct {
 	Root  string
-	files map[string][]string // path to lines, by extension group
+	files map[string][]string // path to lines
 	byExt map[string][]string
+	// skipped are source files of a searched language that could not be searched (too large,
+	// unreadable, or a symbolic link), by extension: the search did not cover the code.
+	skipped map[string][]string
+	// gems are the gems the Gemfiles declare, with what Bundler requires for them.
+	gems map[string]gemDecl
+	// bundlerRequire is where Bundler.require loads every declared gem at boot.
+	bundlerRequire []Evidence
+	// pyInstalled and gemInstalled are import names read from installed packages in the part
+	// (a virtual environment, vendor/bundle), by normalized package name.
+	pyInstalled  map[string][]string
+	gemInstalled map[string][]string
 }
 
-// Load reads the part's source files (up to 1 MB each) for the ecosystems' languages.
+// gemDecl is what a Gemfile says Bundler requires for a gem: nothing (require: false), the paths
+// named, or (neither) the gem's own name.
+type gemDecl struct {
+	noRequire bool
+	paths     []string
+}
+
+// Load reads the part's source files (up to 1 MB each) for the ecosystems' languages, the Gemfiles'
+// declarations, and the import names of packages installed in the part.
 func Load(root string) (*Code, error) {
 	want := map[string]bool{}
 	for _, exts := range languageFiles {
@@ -93,7 +118,8 @@ func Load(root string) (*Code, error) {
 			want[e] = true
 		}
 	}
-	c := &Code{Root: root, files: map[string][]string{}, byExt: map[string][]string{}}
+	c := &Code{Root: root, files: map[string][]string{}, byExt: map[string][]string{}, skipped: map[string][]string{},
+		gems: map[string]gemDecl{}}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
@@ -104,20 +130,37 @@ func Load(root string) (*Code, error) {
 			}
 			return nil
 		}
+		rel, _ := filepath.Rel(root, p)
+		rel = filepath.ToSlash(rel)
+		if d.Name() == "Gemfile" || d.Name() == "gems.rb" {
+			if d.Type().IsRegular() {
+				if raw, err := os.ReadFile(p); err == nil {
+					readGemfile(string(raw), c.gems)
+				}
+			}
+			return nil
+		}
 		ext := strings.ToLower(filepath.Ext(p))
+		if e, ok := sourceNames[d.Name()]; ok {
+			ext = e
+		}
 		if !want[ext] {
 			return nil
 		}
+		if !d.Type().IsRegular() {
+			c.skipped[ext] = append(c.skipped[ext], rel)
+			return nil
+		}
 		info, err := d.Info()
-		if err != nil || info.Size() > 1<<20 {
+		if err != nil || info.Size() > maxFile {
+			c.skipped[ext] = append(c.skipped[ext], rel)
 			return nil
 		}
 		raw, err := os.ReadFile(p)
 		if err != nil {
+			c.skipped[ext] = append(c.skipped[ext], rel)
 			return nil
 		}
-		rel, _ := filepath.Rel(root, p)
-		rel = filepath.ToSlash(rel)
 		c.files[rel] = strings.Split(string(raw), "\n")
 		c.byExt[ext] = append(c.byExt[ext], rel)
 		return nil
@@ -125,7 +168,126 @@ func Load(root string) (*Code, error) {
 	for _, list := range c.byExt {
 		sort.Strings(list)
 	}
+	for _, file := range c.byExt[".rb"] {
+		for i, line := range c.files[file] {
+			if bundlerRequireRe.MatchString(line) {
+				c.bundlerRequire = append(c.bundlerRequire, Evidence{Path: file, Line: i + 1, Note: "Bundler.require loads every gem the Gemfile declares"})
+			}
+		}
+	}
+	c.pyInstalled = pythonInstalled(root)
+	c.gemInstalled = gemsInstalled(root)
 	return c, err
+}
+
+var (
+	bundlerRequireRe = regexp.MustCompile(`\bBundler\.require\b`)
+	gemDeclRe        = regexp.MustCompile(`^\s*gem\s*\(?\s*["']([^"']+)["'](.*)$`)
+	requireFalseRe   = regexp.MustCompile(`(?:\brequire:|:require\s*=>)\s*(?:false|nil)\b`)
+	requirePathRe    = regexp.MustCompile(`(?:\brequire:|:require\s*=>)\s*["']([^"']+)["']`)
+	requireAnyRe     = regexp.MustCompile(`(?:\brequire:|:require\s*=>)`)
+)
+
+// readGemfile records each gem line's require option. An option it cannot read (a list, a
+// variable) leaves the gem as Bundler requires it by default.
+func readGemfile(src string, into map[string]gemDecl) {
+	for _, line := range strings.Split(src, "\n") {
+		m := gemDeclRe.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		d := gemDecl{}
+		switch {
+		case requireFalseRe.MatchString(m[2]):
+			d.noRequire = true
+		case requirePathRe.MatchString(m[2]):
+			d.paths = []string{requirePathRe.FindStringSubmatch(m[2])[1]}
+		case requireAnyRe.MatchString(m[2]):
+			d = gemDecl{} // an option it cannot read: as Bundler's default, the louder answer
+		}
+		if prev, ok := into[m[1]]; ok && !prev.noRequire && d.noRequire {
+			continue // declared twice (two Gemfiles): one that Bundler requires stands
+		}
+		into[m[1]] = d
+	}
+}
+
+// normPy folds a Python distribution name as PEP 503 does, with underscores.
+func normPy(name string) string {
+	return strings.ToLower(pyFoldRe.ReplaceAllString(name, "_"))
+}
+
+var pyFoldRe = regexp.MustCompile(`[-_.]+`)
+
+// pythonInstalled reads the import names of the distributions installed in the part's virtual
+// environment (.venv or venv): each one's top_level.txt, or else the top folders its RECORD lists.
+func pythonInstalled(root string) map[string][]string {
+	out := map[string][]string{}
+	var metas []string
+	for _, venv := range []string{".venv", "venv"} {
+		for _, pattern := range []string{"lib/python*/site-packages/*.dist-info", "lib/python*/site-packages/*.egg-info", "Lib/site-packages/*.dist-info"} {
+			m, _ := filepath.Glob(filepath.Join(root, venv, filepath.FromSlash(pattern)))
+			metas = append(metas, m...)
+		}
+	}
+	for _, meta := range metas {
+		base := filepath.Base(meta)
+		name := base
+		if i := strings.Index(base, "-"); i > 0 {
+			name = base[:i]
+		}
+		var mods []string
+		if raw, err := os.ReadFile(filepath.Join(meta, "top_level.txt")); err == nil {
+			for _, l := range strings.Fields(string(raw)) {
+				mods = appendUnique(mods, strings.ReplaceAll(l, "/", "."))
+			}
+		} else if raw, err := os.ReadFile(filepath.Join(meta, "RECORD")); err == nil {
+			for _, l := range strings.Split(string(raw), "\n") {
+				f := strings.SplitN(strings.SplitN(l, ",", 2)[0], "/", 2)[0]
+				if f == "" || strings.HasPrefix(f, "..") || strings.HasSuffix(f, ".dist-info") || strings.HasSuffix(f, ".data") ||
+					strings.HasSuffix(f, ".pth") || f == "__pycache__" {
+					continue
+				}
+				mods = appendUnique(mods, strings.TrimSuffix(f, ".py"))
+			}
+		}
+		if len(mods) > 0 {
+			out[normPy(name)] = mods
+		}
+	}
+	return out
+}
+
+var gemDirRe = regexp.MustCompile(`^(.+?)-(\d[^-]*)(?:-.+)?$`)
+
+// gemsInstalled reads the names each gem installed in vendor/bundle can be required by: the files
+// and folders at the top of its lib folder.
+func gemsInstalled(root string) map[string][]string {
+	out := map[string][]string{}
+	dirs, _ := filepath.Glob(filepath.Join(root, "vendor", "bundle", "ruby", "*", "gems", "*"))
+	for _, dir := range dirs {
+		m := gemDirRe.FindStringSubmatch(filepath.Base(dir))
+		if m == nil {
+			continue
+		}
+		entries, err := os.ReadDir(filepath.Join(dir, "lib"))
+		if err != nil {
+			continue
+		}
+		var names []string
+		for _, e := range entries {
+			n := e.Name()
+			if e.IsDir() {
+				names = appendUnique(names, n)
+			} else if strings.HasSuffix(n, ".rb") {
+				names = appendUnique(names, strings.TrimSuffix(n, ".rb"))
+			}
+		}
+		if len(names) > 0 {
+			out[m[1]] = names
+		}
+	}
+	return out
 }
 
 func (c *Code) filesFor(eco string) []string {
@@ -137,38 +299,108 @@ func (c *Code) filesFor(eco string) []string {
 	return out
 }
 
-// modules gives the names a package is imported by, per ecosystem.
-func modules(eco, name string) []string {
+func (c *Code) skippedFor(eco string) []string {
+	var out []string
+	for _, ext := range languageFiles[strings.Split(eco, ":")[0]] {
+		out = append(out, c.skipped[ext]...)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// pyKnown are Python distributions whose import names are known, where they differ from the name.
+var pyKnown = map[string][]string{
+	"pyyaml": {"yaml"}, "python_multipart": {"multipart", "python_multipart"}, "beautifulsoup4": {"bs4"}, "pillow": {"PIL"},
+	"scikit_learn": {"sklearn"}, "python_dateutil": {"dateutil"}, "opencv_python": {"cv2"}, "opencv_python_headless": {"cv2"},
+	"opencv_contrib_python": {"cv2"}, "pyjwt": {"jwt"}, "python_jose": {"jose"}, "protobuf": {"google.protobuf"},
+	"msgpack_python": {"msgpack"}, "django_rest_framework": {"rest_framework"}, "djangorestframework": {"rest_framework"},
+	"pycryptodome": {"Crypto"}, "pycryptodomex": {"Cryptodome"}, "pycrypto": {"Crypto"}, "pyopenssl": {"OpenSSL"},
+	"mysqlclient": {"MySQLdb"}, "psycopg2_binary": {"psycopg2"}, "attrs": {"attr", "attrs"}, "setuptools": {"setuptools", "pkg_resources"},
+	"pyserial": {"serial"}, "python_ldap": {"ldap", "ldif", "ldapurl"}, "grpcio": {"grpc"}, "gitpython": {"git"}, "pygithub": {"github"},
+	"python_dotenv": {"dotenv"}, "websocket_client": {"websocket"}, "pyzmq": {"zmq"}, "ipython": {"IPython"}, "pymongo": {"pymongo", "bson", "gridfs"},
+	"python_socketio": {"socketio"}, "python_engineio": {"engineio"}, "flask_cors": {"flask_cors"}, "dnspython": {"dns"},
+	"google_cloud_storage": {"google.cloud.storage"}, "pyasn1_modules": {"pyasn1_modules"}, "typing_extensions": {"typing_extensions"},
+}
+
+// pySame are Python distributions imported by their own name (folded), so a search that finds no
+// import of them can say not used.
+var pySame = map[string]bool{
+	"requests": true, "urllib3": true, "django": true, "flask": true, "werkzeug": true, "jinja2": true, "markupsafe": true,
+	"sqlalchemy": true, "numpy": true, "pandas": true, "scipy": true, "cryptography": true, "paramiko": true, "aiohttp": true,
+	"tornado": true, "celery": true, "redis": true, "boto3": true, "botocore": true, "certifi": true, "idna": true, "lxml": true,
+	"pyasn1": true, "rsa": true, "httpx": true, "starlette": true, "fastapi": true, "pydantic": true, "uvicorn": true,
+	"gunicorn": true, "twisted": true, "mako": true, "markdown": true, "bleach": true, "babel": true, "tqdm": true, "click": true,
+	"waitress": true, "gevent": true, "nltk": true, "transformers": true, "torch": true, "tensorflow": true, "keras": true,
+	"mlflow": true, "pyarrow": true, "sentry_sdk": true, "httplib2": true, "oauthlib": true, "requests_oauthlib": true,
+	"pymysql": true, "psycopg2": true, "psycopg": true, "jsonschema": true, "pygments": true, "feedparser": true,
+	"ujson": true, "orjson": true, "simplejson": true, "six": true, "docker": true, "kombu": true, "gradio": true, "langchain": true,
+}
+
+// rubyKnown are gems whose require names are known, where they differ from the gem's name.
+var rubyKnown = map[string][]string{"actionpack": {"action_controller", "action_dispatch"}, "activesupport": {"active_support"},
+	"activerecord": {"active_record"}, "actionview": {"action_view"}, "activemodel": {"active_model"}, "activejob": {"active_job"},
+	"actionmailer": {"action_mailer"}, "actioncable": {"action_cable"}, "activestorage": {"active_storage"}, "railties": {"rails"},
+	"rest-client": {"rest-client", "restclient"}, "rails-html-sanitizer": {"rails-html-sanitizer", "rails/html/sanitizer"},
+	"google-protobuf": {"google/protobuf"}}
+
+// rubySame are gems required by their own name.
+var rubySame = map[string]bool{
+	"rack": true, "nokogiri": true, "puma": true, "json": true, "jwt": true, "pg": true, "mysql2": true, "sqlite3": true,
+	"redis": true, "sidekiq": true, "httparty": true, "faraday": true, "oj": true, "bcrypt": true, "sinatra": true, "rake": true,
+	"thor": true, "loofah": true, "rails": true, "devise": true, "omniauth": true, "net-imap": true, "net-smtp": true,
+	"uri": true, "rexml": true, "psych": true, "erb": true, "mail": true, "addressable": true, "websocket-driver": true,
+	"multi_json": true, "jbuilder": true, "kaminari": true, "pundit": true, "cancancan": true, "doorkeeper": true,
+	"carrierwave": true, "paperclip": true, "rmagick": true, "mini_magick": true, "image_processing": true, "excon": true,
+	"httpclient": true, "typhoeus": true, "sprockets": true, "sass": true, "haml": true, "slim": true, "liquid": true,
+}
+
+// modules gives the names a package is imported by, and whether they are known rather than guessed.
+// A search that finds none of guessed names cannot say the package is not used.
+func (c *Code) modules(eco, name string) ([]string, bool) {
 	switch strings.Split(eco, ":")[0] {
 	case "PyPI":
-		n := strings.ToLower(name)
-		known := map[string]string{"pyyaml": "yaml", "python-multipart": "multipart", "beautifulsoup4": "bs4", "pillow": "PIL",
-			"scikit-learn": "sklearn", "python-dateutil": "dateutil", "opencv-python": "cv2", "pyjwt": "jwt", "python-jose": "jose",
-			"protobuf": "google.protobuf", "msgpack-python": "msgpack", "django-rest-framework": "rest_framework", "djangorestframework": "rest_framework"}
-		if m, ok := known[n]; ok {
-			return []string{m}
+		n := normPy(name)
+		if m, ok := c.pyInstalled[n]; ok {
+			return m, true
 		}
-		return []string{strings.NewReplacer("-", "_", ".", "_").Replace(n)}
+		if m, ok := pyKnown[n]; ok {
+			return m, true
+		}
+		return []string{n}, pySame[n]
 	case "RubyGems":
-		known := map[string][]string{"actionpack": {"action_controller", "action_dispatch"}, "activesupport": {"active_support"},
-			"activerecord": {"active_record"}, "actionview": {"action_view"}, "activemodel": {"active_model"}, "activejob": {"active_job"},
-			"actionmailer": {"action_mailer"}, "actioncable": {"action_cable"}, "activestorage": {"active_storage"}, "railties": {"rails"}}
-		if m, ok := known[name]; ok {
-			return m
+		var mods []string
+		known := false
+		if d, ok := c.gems[name]; ok && len(d.paths) > 0 {
+			mods, known = append(mods, d.paths...), true
 		}
-		return []string{name, strings.ReplaceAll(name, "-", "/")}
+		switch {
+		case c.gemInstalled[name] != nil:
+			mods, known = append(mods, c.gemInstalled[name]...), true
+		case rubyKnown[name] != nil:
+			mods, known = append(mods, rubyKnown[name]...), true
+		default:
+			mods = append(mods, name, strings.ReplaceAll(name, "-", "/"))
+			known = known || rubySame[name]
+		}
+		return mods, known
 	case "Maven":
+		// The group id often is not the Java package (commons-collections is org.apache.commons.collections).
 		if i := strings.Index(name, ":"); i > 0 {
-			return []string{name[:i]}
+			return []string{name[:i]}, false
 		}
+		return []string{name}, false
 	case "Packagist":
+		// The vendor is often, not always, the namespace; classes may be used fully qualified with no use line.
 		if i := strings.Index(name, "/"); i > 0 {
-			return []string{name[:i]}
+			return []string{name[:i]}, false
 		}
+		return []string{name}, false
 	case "crates.io":
-		return []string{strings.ReplaceAll(name, "-", "_")}
+		return []string{strings.ReplaceAll(name, "-", "_")}, true
+	case "npm", "Go", "Pub":
+		return []string{name}, true
 	}
-	return []string{name}
+	return []string{name}, false
 }
 
 // importPattern matches a line importing one of the module names.
@@ -185,6 +417,7 @@ func importPattern(eco string, mods []string) *regexp.Regexp {
 	case "PyPI":
 		expr = `^\s*(?:import\s+(?:` + names + `)(?:\.|\s|,|$)|from\s+(?:` + names + `)(?:\.\S*)?\s+import\b)`
 	case "RubyGems":
+		// require lines, and gem lines in a bundler/inline block, which require the gem
 		expr = `\brequire(?:_relative)?\s*\(?\s*['"](?:` + names + `)(?:/[^'"]*)?['"]|^\s*gem\s+['"](?:` + names + `)['"]`
 	case "Go":
 		expr = `"(?:` + names + `)(?:/[^"]*)?"`
@@ -193,7 +426,9 @@ func importPattern(eco string, mods []string) *regexp.Regexp {
 	case "Packagist":
 		expr = `(?i)^\s*use\s+\\?(?:` + names + `)\\`
 	case "crates.io":
-		expr = `\b(?:use|extern\s+crate)\s+(?:` + names + `)\b`
+		expr = `\b(?:use|extern\s+crate)\s+(?:` + names + `)\b|\b(?:` + names + `)::`
+	case "Pub":
+		expr = `['"]package:(?:` + names + `)/`
 	default:
 		expr = `\b(?:` + names + `)\b`
 	}
@@ -222,7 +457,7 @@ func (c *Code) Check(f Finding) Result {
 			verdict = louder(verdict, Unclear)
 			continue
 		}
-		mods := modules(p.Ecosystem, p.Name)
+		mods, known := c.modules(p.Ecosystem, p.Name)
 		imp := importPattern(p.Ecosystem, mods)
 		var importing []string
 		for _, file := range files {
@@ -256,8 +491,26 @@ func (c *Code) Check(f Finding) Result {
 			verdict = louder(verdict, Used)
 			reasons = append(reasons, fmt.Sprintf("%s is imported in %d %s; the advisory names no affected functions, so any use may reach the flaw.", p.Name, len(importing), plural(len(importing), "file", "files")))
 		case p.Relation == "direct":
-			verdict = louder(verdict, NotUsed)
-			reasons = append(reasons, fmt.Sprintf("%s is a direct dependency, but no %s source file searched imports it (as %s).", p.Name, strings.Split(p.Ecosystem, ":")[0], strings.Join(mods, " or ")))
+			// Not used only when the import names are known, the search covered the code, and
+			// nothing loads the package without naming it. Otherwise the check cannot tell.
+			lang := strings.Split(p.Ecosystem, ":")[0]
+			skipped := c.skippedFor(p.Ecosystem)
+			autoRequired := lang == "RubyGems" && len(c.bundlerRequire) > 0 && !c.gems[p.Name].noRequire
+			switch {
+			case autoRequired:
+				verdict = louder(verdict, Unclear)
+				r.add(c.bundlerRequire[0])
+				reasons = append(reasons, fmt.Sprintf("No file requires %s, but %s:%d calls Bundler.require, which loads every gem the Gemfile declares (unless it says require: false), so the code may use it without a require line.", p.Name, c.bundlerRequire[0].Path, c.bundlerRequire[0].Line))
+			case !known:
+				verdict = louder(verdict, Unclear)
+				reasons = append(reasons, fmt.Sprintf("%s is a direct dependency and no %s source file imports it as %s, but the name it is imported by is not known for certain, so its use could not be ruled out.", p.Name, lang, strings.Join(mods, " or ")))
+			case len(skipped) > 0:
+				verdict = louder(verdict, Unclear)
+				reasons = append(reasons, fmt.Sprintf("No %s source file searched imports %s, but %d %s could not be searched (over 1 MB, unreadable or a symbolic link), for example %s.", lang, p.Name, len(skipped), plural(len(skipped), "file", "files"), skipped[0]))
+			default:
+				verdict = louder(verdict, NotUsed)
+				reasons = append(reasons, fmt.Sprintf("%s is a direct dependency, but no %s source file searched imports it (as %s).", p.Name, lang, strings.Join(mods, " or ")))
+			}
 		default:
 			verdict = louder(verdict, Unclear)
 			via := "another package"

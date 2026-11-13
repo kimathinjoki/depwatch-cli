@@ -143,6 +143,13 @@ depwatch check --dry-run       # print the verdicts, send nothing
 depwatch check --assist        # have Claude draft each verdict, with your own ANTHROPIC_API_KEY
 ```
 
+"Not used" is drafted only when the check can be sure: the package is a direct dependency, the names
+it is imported by are known (npm, Go, Rust and Dart by their own rules; Python and Ruby from the
+packages installed in the part's `.venv` or `vendor/bundle`, or from a list of known names; never for
+Maven, Composer, NuGet or Hex, whose import names cannot be told from the package name), every source
+file of its language was searched, and, for Ruby, no `Bundler.require` loads the gem at boot (unless
+the Gemfile says `require: false`). Otherwise the verdict is unclear, with the reason.
+
 Code leaves the machine only as a few lines around each piece of evidence, and only when the workspace
 owner allowed snippets. With `--assist`, the evidence and the lines around it go to Claude from this
 machine with your key (`--model`, default `claude-opus-5-5`); the depwatch server never sees the key.
