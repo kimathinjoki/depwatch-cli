@@ -305,6 +305,12 @@ recorded" and scope comes from what the file says, or production (the louder ans
 nothing. Operating system packages are read from Debian, Ubuntu, Alpine and Red Hat family package
 databases. The full table is in ARCHITECTURE.md.
 
+## Settings
+
+The CLI reads its settings from the environment (or flags). `.env.example` lists every variable it
+reads, commented, with what it is for; export them in your shell or set them as CI secrets. It does not
+read a `.env` file itself.
+
 ## Build and test
 
 ```sh
