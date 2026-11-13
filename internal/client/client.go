@@ -228,3 +228,18 @@ func (c *Client) do(ctx context.Context, method, path string, body []byte, out a
 	}
 	return nil
 }
+
+// GetFixes fetches the findings to open pull requests for.
+func (c *Client) GetFixes(ctx context.Context, out any) error {
+	return c.do(ctx, http.MethodGet, "/api/v1/fixes", nil, out)
+}
+
+// PostJSON posts a JSON body to a server path.
+func (c *Client) PostJSON(ctx context.Context, path string, body any) (map[string]any, error) {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	var out map[string]any
+	return out, c.do(ctx, http.MethodPost, path, raw, &out)
+}
