@@ -31,7 +31,6 @@ type MirrorOSV struct {
 
 	mu       sync.Mutex
 	unsynced map[string]int
-	errs     []string
 }
 
 // NewMirrorOSV opens a mirror folder.
