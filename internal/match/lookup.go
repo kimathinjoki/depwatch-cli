@@ -72,7 +72,7 @@ func Lookup(ctx context.Context, inv *inventory.Inventory, osv sources.OSV, work
 	subjects, unknownEco, ranged := subjectsOf(inv)
 	for _, eco := range sortedKeys(unknownEco) {
 		res.NotChecked = append(res.NotChecked, NotChecked{What: pluralPackages(unknownEco[eco], eco),
-			Why: "no advisory source depwatch reads covers this ecosystem", Incomplete: true})
+			Why: "no advisory source depwatch reads covers this ecosystem", Incomplete: true, Ecosystem: eco})
 	}
 	if ranged > 0 {
 		res.NotChecked = append(res.NotChecked, NotChecked{What: pluralPackages(ranged, "range-only"),
@@ -81,7 +81,7 @@ func Lookup(ctx context.Context, inv *inventory.Inventory, osv sources.OSV, work
 	ids, vulns, _ := lookup(ctx, subjects, osv, workers, fail)
 	if gr, ok := osv.(sources.GapReporter); ok {
 		for _, g := range gr.Gaps() {
-			res.NotChecked = append(res.NotChecked, NotChecked{What: g.What, Why: g.Why, Incomplete: true})
+			res.NotChecked = append(res.NotChecked, NotChecked{What: g.What, Why: g.Why, Incomplete: true, Ecosystem: g.Ecosystem})
 		}
 	}
 	seen := map[string]bool{}

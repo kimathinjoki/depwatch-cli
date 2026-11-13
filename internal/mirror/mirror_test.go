@@ -156,3 +156,19 @@ func TestBadArchiveIsRefused(t *testing.T) {
 		t.Fatalf("%+v %v", st, err)
 	}
 }
+
+// Withdrawn entries are answered, so the server can tell withdrawn from fixed.
+func TestWithdrawnIsAnswered(t *testing.T) {
+	w := entry("GHSA-w", "npm", "x", events(map[string]string{"introduced": "0"}))
+	w["withdrawn"] = "2026-01-01T00:00:00Z"
+	srv, _ := serve(t, map[string][]byte{"npm": zipOf(t, map[string]any{"GHSA-w": w})})
+	dir := t.TempDir()
+	if _, err := (&Syncer{Dir: dir, BaseURL: srv.URL}).Sync(context.Background(), "npm"); err != nil {
+		t.Fatal(err)
+	}
+	r := Open(dir)
+	defer r.Close()
+	if ids, _ := r.Affecting("npm", "x", "1.0.0"); !slices.Equal(ids, []string{"GHSA-w"}) {
+		t.Fatalf("%v", ids)
+	}
+}

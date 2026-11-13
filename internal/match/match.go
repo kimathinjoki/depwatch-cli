@@ -82,6 +82,8 @@ type NotChecked struct {
 	Why  string `json:"why"`
 	// Incomplete is true when it makes the check incomplete (never read as clean).
 	Incomplete bool `json:"incomplete"`
+	// Ecosystem names the ecosystem left unchecked, when the gap is one ecosystem's packages.
+	Ecosystem string `json:"ecosystem,omitempty"`
 }
 
 // Report is the outcome of checking one inventory.
@@ -143,6 +145,7 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 			What:       fmt.Sprintf("%d %s packages", unknownEco[eco], eco),
 			Why:        "no advisory source depwatch reads covers this ecosystem",
 			Incomplete: true,
+			Ecosystem:  eco,
 		})
 	}
 	if ranged > 0 {
@@ -167,7 +170,7 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 	ids, vulns, allIDs := lookup(ctx, subjects, src.OSV, opt.Workers, fail)
 	if gr, ok := src.OSV.(sources.GapReporter); ok {
 		for _, g := range gr.Gaps() {
-			rep.NotChecked = append(rep.NotChecked, NotChecked{What: g.What, Why: g.Why, Incomplete: true})
+			rep.NotChecked = append(rep.NotChecked, NotChecked{What: g.What, Why: g.Why, Incomplete: true, Ecosystem: g.Ecosystem})
 		}
 	}
 

@@ -16,6 +16,8 @@ import (
 type Gap struct {
 	What string
 	Why  string
+	// Ecosystem names the ecosystem left unchecked, when the gap is one.
+	Ecosystem string
 }
 
 // GapReporter is a source that can leave part of a question unanswered and say which part.
@@ -85,8 +87,9 @@ func (m *MirrorOSV) Gaps() []Gap {
 	var out []Gap
 	for _, e := range ecos {
 		out = append(out, Gap{
-			What: fmt.Sprintf("%d %s packages", m.unsynced[e], e),
-			Why:  "the OSV mirror has not synced " + e + " yet",
+			What:      fmt.Sprintf("%d %s packages", m.unsynced[e], e),
+			Why:       "the OSV mirror has not synced " + e + " yet",
+			Ecosystem: e,
 		})
 	}
 	return out
