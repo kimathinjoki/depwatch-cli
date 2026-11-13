@@ -114,7 +114,7 @@ Exit codes:
 	c.Flags().StringSliceVar(&failOn, "fail-on", []string{"malicious", "kev"}, "fail on findings that are any of: malicious, kev, severe, high")
 	c.Flags().BoolVar(&allowIncomplete, "allow-incomplete", false, "exit 0 instead of 2 when the check is incomplete and nothing meets the threshold")
 	c.Flags().Float64Var(&threshold, "epss-threshold", rank.DefaultEPSSThreshold, "EPSS probability at or above which a critical finding is severe")
-	c.Flags().StringVar(&mirrorDir, "mirror", "", "match against a local OSV mirror (depwatch mirror sync) instead of the OSV API")
+	c.Flags().StringVar(&mirrorDir, "mirror", "", "match against a local OSV mirror (depwatch mirror sync) instead of the OSV API; a mirror whose last sync failed or is over 24 hours old makes the check incomplete")
 	c.Flags().StringVar(&recording, "recording", "", "answer from a recorded set of source responses instead of the network (tests)")
 	_ = c.Flags().MarkHidden("recording")
 	return c

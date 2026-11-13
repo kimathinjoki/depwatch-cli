@@ -182,6 +182,8 @@ Exit codes: 0 complete; 2 incomplete (an ecosystem the mirror does not hold, an 
 // mirrorSources answers OSV from a mirror and KEV and EPSS live.
 func mirrorSources(dir string) sources.Set {
 	live := sources.Live(version.UserAgent(), 60*time.Second)
-	live.OSV = sources.NewMirrorOSV(dir)
+	osv := sources.NewMirrorOSV(dir)
+	osv.MaxAge = sources.StaleAfter
+	live.OSV = osv
 	return live
 }

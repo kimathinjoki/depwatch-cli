@@ -200,7 +200,9 @@ depwatch mirror status --dir ~/osv
 depwatch gate --mirror ~/osv          # gate against the mirror instead of the OSV API
 ```
 
-An unchanged export is not downloaded again; a failed download keeps the previous copy. For a machine
+An unchanged export is not downloaded again; a failed download keeps the previous copy. `gate --mirror`
+still answers from that copy, but an ecosystem whose last sync failed, or whose last good sync is over
+24 hours old, is listed as a stale source and the run is incomplete. For a machine
 with no route to OSV, download `https://osv-vulnerabilities.storage.googleapis.com/<Ecosystem>/all.zip`
 elsewhere and install it with `--archive all.zip` (one ecosystem at a time).
 
