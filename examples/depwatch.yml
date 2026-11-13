@@ -1,0 +1,38 @@
+# depwatch.yml: what no lockfile states about this part.
+# Place it at the root of the part. Every key is optional.
+# The schema is schema/depwatch.schema.json; the CLI and the server read it with the same code.
+
+version: 1
+
+# The branch whose head (or last deployment) is production. Pinning it here overrides the
+# server's setting for this part.
+production_branch: main
+
+# The runtime versions production actually runs. Quote versions so YAML keeps them as written.
+# When a version file (.ruby-version, .nvmrc, .python-version, .tool-versions) says something
+# else, both are listed and the output says they disagree.
+runtimes:
+  ruby: "3.3.4"
+  node: "20.11.1"
+
+# Database engines and versions in production.
+databases:
+  - engine: postgres
+    version: "16"
+  - engine: redis
+    version: "7.2"
+
+# Runtimes the hosting platform provides.
+hosting:
+  - name: heroku-stack
+    version: "24"
+
+# Base images built or pulled elsewhere that production runs on. The CLI reads them with
+# depwatch inventory --image; the server pulls public ones.
+images:
+  - ruby:3.3.4-slim-bookworm
+
+# Folders, relative to this file, that are not part of this part.
+ignore:
+  - docs/
+  - spec/fixtures/

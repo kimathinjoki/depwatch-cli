@@ -1,0 +1,149 @@
+package collect
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
+	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
+)
+
+const monorepo = "../../testdata/fixtures/monorepo"
+
+func take(t *testing.T, root string) *inventory.Inventory {
+	t.Helper()
+	inv, _, err := Take(context.Background(), Options{Root: root, CLIVersion: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := inv.Validate(); err != nil {
+		t.Fatalf("the inventory does not validate against the schema: %v", err)
+	}
+	return inv
+}
+
+func find(inv *inventory.Inventory, name string) *inventory.Package {
+	for i := range inv.Packages {
+		if inv.Packages[i].Name == name {
+			return &inv.Packages[i]
+		}
+	}
+	return nil
+}
+
+// A monorepo with a Rails app in api/ and a React app in client/ yields both ecosystems, each
+// package tagged with the file it came from.
+func TestMonorepoYieldsBothEcosystems(t *testing.T) {
+	inv := take(t, monorepo)
+	rack, react := find(inv, "rack"), find(inv, "react")
+	if rack == nil || rack.Ecosystem != "RubyGems" || rack.SourceFile != "api/Gemfile.lock" {
+		t.Fatalf("rack: %+v", rack)
+	}
+	if react == nil || react.Ecosystem != "npm" || react.SourceFile != "client/package-lock.json" {
+		t.Fatalf("react: %+v", react)
+	}
+	if !inv.Complete() {
+		t.Fatalf("the monorepo should be complete: %+v", inv.FilesNotRead)
+	}
+}
+
+// .git, node_modules and vendor are not walked, nor any folder listed under ignore in depwatch.yml.
+func TestSkippedFolders(t *testing.T) {
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"left-pad":"1"}},"node_modules/left-pad":{"version":"1.3.0"}}}`
+	dir := testutil.Tree(t, map[string]string{
+		"package.json":                     `{"dependencies":{"left-pad":"1"}}`,
+		"package-lock.json":                lock,
+		".git/package-lock.json":           lock,
+		"node_modules/x/package-lock.json": lock,
+		"vendor/y/composer.lock":           `{"packages":[{"name":"a/b","version":"1.0.0"}]}`,
+		"legacy/package-lock.json":         lock,
+		"legacy/package.json":              `{}`,
+		"depwatch.yml":                     "ignore:\n  - legacy\n",
+	})
+	inv := take(t, dir)
+	for _, f := range inv.FilesRead {
+		for _, skipped := range []string{".git/", "node_modules/", "vendor/", "legacy/"} {
+			if strings.HasPrefix(f.Path, skipped) {
+				t.Errorf("%s was read; %s must not be walked", f.Path, skipped)
+			}
+		}
+	}
+	if len(inv.FilesRead) != 1 {
+		t.Errorf("want only the root lockfile read, got %+v", inv.FilesRead)
+	}
+}
+
+// A corrupt package-lock.json is listed under files not read, with the parser's reason, and the run
+// is incomplete.
+func TestCorruptLockfileIsNotRead(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{
+		"package.json":      `{"dependencies":{"a":"1"}}`,
+		"package-lock.json": `{"lockfileVersion": 3, "packages": {`,
+	})
+	inv := take(t, dir)
+	if len(inv.FilesNotRead) != 1 || inv.FilesNotRead[0].Path != "package-lock.json" || inv.FilesNotRead[0].Reason == "" {
+		t.Fatalf("files not read: %+v", inv.FilesNotRead)
+	}
+	if inv.Complete() {
+		t.Fatal("a corrupt lockfile must make the run incomplete")
+	}
+}
+
+// A build.sbt (an ecosystem SCALIBR does not read) is listed as present and unsupported, and the run
+// is incomplete.
+func TestUnsupportedEcosystem(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{"build.sbt": `libraryDependencies += "org.typelevel" %% "cats-core" % "2.9.0"`})
+	inv := take(t, dir)
+	if len(inv.Unsupported) != 1 || inv.Unsupported[0].Path != "build.sbt" {
+		t.Fatalf("unsupported: %+v", inv.Unsupported)
+	}
+	if inv.Complete() {
+		t.Fatal("an unsupported ecosystem must make the run incomplete")
+	}
+}
+
+// A package.json with no lockfile beside it is listed as unpinned, its packages carry their declared
+// ranges.
+func TestUnpinnedPackageJSON(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{
+		"tools/package.json": `{"dependencies":{"express":"^4.18.0"},"devDependencies":{"jest":"~29.0.0"}}`,
+	})
+	inv := take(t, dir)
+	if len(inv.Unpinned) != 1 || inv.Unpinned[0].Path != "tools/package.json" {
+		t.Fatalf("unpinned: %+v", inv.Unpinned)
+	}
+	express, jest := find(inv, "express"), find(inv, "jest")
+	if express == nil || express.Range != "^4.18.0" || express.Version != "" || express.Scope != inventory.ScopeProduction {
+		t.Fatalf("express: %+v", express)
+	}
+	if jest == nil || jest.Range != "~29.0.0" || jest.Scope != inventory.ScopeDevelopment {
+		t.Fatalf("jest: %+v", jest)
+	}
+}
+
+// A workspace member's package.json is pinned by the lockfile at the top of the workspace.
+func TestWorkspaceMemberIsNotUnpinned(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{
+		"package.json":            `{"workspaces":["packages/*"]}`,
+		"package-lock.json":       `{"lockfileVersion":3,"packages":{"":{}}}`,
+		"packages/a/package.json": `{"dependencies":{"left-pad":"^1.0.0"}}`,
+	})
+	inv := take(t, dir)
+	if len(inv.Unpinned) != 0 {
+		t.Fatalf("a workspace member is pinned by the root lockfile: %+v", inv.Unpinned)
+	}
+}
+
+func TestDockerfileBaseImageIsListedNotRead(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{
+		"Dockerfile": "ARG RUBY=3.3\nFROM ruby:${RUBY}-slim AS build\nRUN bundle install\nFROM build AS final\n",
+	})
+	inv := take(t, dir)
+	if len(inv.Images) != 1 || inv.Images[0].Reference != "ruby:3.3-slim" || inv.Images[0].Read {
+		t.Fatalf("images: %+v", inv.Images)
+	}
+	if inv.Complete() {
+		t.Fatal("an unpulled base image must make the inventory incomplete")
+	}
+}

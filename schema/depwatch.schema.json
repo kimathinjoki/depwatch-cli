@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kimathinjoki/depwatch-cli/schema/depwatch.schema.json",
+  "title": "depwatch.yml",
+  "description": "What no lockfile states about a part. Every key is optional. Version 1.",
+  "type": [
+    "object",
+    "null"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1,
+      "description": "The file's format version. 1 when absent."
+    },
+    "production_branch": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The branch whose head, or last deployment, is production."
+    },
+    "runtimes": {
+      "type": "object",
+      "description": "Runtime name to the version production runs, for example ruby: \"3.3.4\".",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_.-]*$"
+      },
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number"
+        ],
+        "description": "A version. Quote it to keep trailing zeros: \"3.10\"."
+      }
+    },
+    "databases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "engine",
+          "version"
+        ],
+        "properties": {
+          "engine": {
+            "type": "string",
+            "minLength": 1,
+            "description": "postgres, mysql, redis, sqlite and so on."
+          },
+          "version": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "A version. Quote it to keep trailing zeros: \"3.10\"."
+          }
+        }
+      }
+    },
+    "hosting": {
+      "type": "array",
+      "description": "Runtimes the hosting platform provides, for example a Heroku stack.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": [
+              "string",
+              "number"
+            ],
+            "description": "A version. Quote it to keep trailing zeros: \"3.10\"."
+          }
+        }
+      }
+    },
+    "images": {
+      "type": "array",
+      "description": "Base images built or pulled elsewhere that production runs on.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "ignore": {
+      "type": "array",
+      "description": "Folders, relative to this file, that are not part of this part.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

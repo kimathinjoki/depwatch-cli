@@ -1,0 +1,11 @@
+{
+  "description": "A Rails lockfile with rack 2.2.3, which carries published CVEs, reached through rails and through sidekiq.",
+  "args": [],
+  "key": "CVE-2022-30123",
+  "key_level": "high",
+  "key_labels": [],
+  "key_paths": [
+    "sidekiq > rack",
+    "rails > actionpack > rack"
+  ]
+}

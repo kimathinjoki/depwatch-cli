@@ -1,0 +1,207 @@
+# depwatch-cli
+
+`depwatch` is a command line tool that takes the inventory of a project (every package at every
+depth, with the path that brought it in and whether it ships to production, the runtimes, and the
+operating system packages of its images) and checks it for known vulnerabilities and compromised
+releases. It runs where the code already is, on a developer's machine or in CI, and needs no
+depwatch server.
+
+It is one part of depwatch. What the system does and why is in
+[`depwatch-docs/SYSTEM.md`](../depwatch-docs/SYSTEM.md); how it is built is in
+[`depwatch-docs/ARCHITECTURE.md`](../depwatch-docs/ARCHITECTURE.md).
+
+The rule it never breaks: **nothing reads as clean when depwatch did not look.** A file it could not
+read, an ecosystem it does not support, an image it could not pull or a source that did not answer
+is shown, and makes the run incomplete, with its own exit code.
+
+## Install
+
+Releases are one static binary per platform (Linux, macOS and Windows, on amd64 and arm64), with a
+checksums file. Until releases are published, build it from source with Go 1.27 or later:
+
+```sh
+git clone https://github.com/kimathinjoki/depwatch-cli
+cd depwatch-cli
+make build            # writes bin/depwatch
+./bin/depwatch version
+```
+
+## Commands
+
+### `depwatch inventory [path]`
+
+Lists everything the project contains, and everything that could not be read. Makes no network call.
+
+```text
+$ depwatch inventory
+depwatch inventory  prospec360  main 3f2c1a9
+
+Not read (1)
+  client/package-lock.json
+    javascript/packagelockjson could not read it: unexpected end of JSON input
+
+Packages
+  api                          RubyGems   Gemfile.lock              212  (171 production, 41 development)
+  client                       npm        package-lock.json         884  (402 production, 482 development)
+
+Runtimes  (listed, not yet checked)
+  ruby       3.3.4          runtime   api/.ruby-version
+  node       20.11.1        runtime   client/.nvmrc
+
+1096 packages from 2 files. Incomplete: some of what was found could not be read.
+```
+
+What was not read always comes first, in deep orange. `--json` writes the inventory exactly as
+[`schema/inventory.schema.json`](schema/inventory.schema.json) defines it; this is the shape the
+depwatch server accepts.
+
+Flags: `--image <ref>` reads a container image (a local tarball from `docker save` or an OCI archive,
+or a registry reference); `--rootfs <dir>` reads the package databases in a folder laid out like a
+root filesystem. Both may be repeated.
+
+Exit codes: `0` everything found was read; `2` incomplete; `3` a usage or `depwatch.yml` error.
+
+### `depwatch gate [path]`
+
+Takes the inventory, checks it against OSV, CISA KEV and EPSS, ranks every finding, and exits
+non-zero when one meets the threshold, so a CI build can stop on it.
+
+```text
+$ depwatch gate
+depwatch gate  billing  main 9c1d2e0
+
+SEVERE  CVE-2021-44228  GHSA-jfh8-c2jp-5v3q  [fails the gate]
+  Remote code injection in Log4j
+  exploited now
+  production, in CISA KEV since 2021-12-10, EPSS 94.4%, CVSS 10.0
+  why: listed in CISA KEV: exploited now
+  org.apache.logging.log4j:log4j-core 2.14.1  pom.xml  production
+    org.apache.logging.log4j:log4j-core
+    fix: 2.15.0
+...
+1 severe, 2 high. Failing on: kev, malicious.
+Failed: 1 finding(s) meet the threshold: CVE-2021-44228.
+```
+
+`--fail-on` takes any of:
+
+| Value | Fails on |
+|---|---|
+| `malicious` | a malicious release, in any scope (its install scripts already ran) |
+| `kev` | listed in CISA KEV (exploited now), in production scope |
+| `severe` | level severe, provisional included |
+| `high` | level high or severe |
+
+The default is `--fail-on malicious,kev`. Other flags: `--allow-incomplete` (exit 0 rather than 2
+when the check is incomplete and nothing meets the threshold), `--epss-threshold 0.10` (the EPSS
+probability at or above which a critical finding is severe), `--image`, `--rootfs`, `--json`.
+
+`gate` pulls base images named in `depwatch.yml` or a Dockerfile's final stage, unless `--image` or
+`--rootfs` already gave it the built image. A base image it cannot pull makes the run incomplete.
+
+### `depwatch version`
+
+Prints the version, commit and build date stamped at build time.
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | Nothing meets the threshold and the check is complete |
+| 1 | A finding meets the threshold. Wins over incomplete. |
+| 2 | Incomplete: something could not be read or checked, or a source did not answer. 0 instead with `--allow-incomplete` when nothing meets the threshold. |
+| 3 | A usage or `depwatch.yml` error |
+
+Every command accepts `--json`, which switches all output, errors included, to JSON. Colour is used
+only when the output is a terminal, and `NO_COLOR` turns it off.
+
+## Configure: `depwatch.yml`
+
+An optional file at the root of the project for what no lockfile states. Every key is optional; an
+unknown key or a wrong type stops the run with exit code 3 and names the line. The annotated example
+is [`examples/depwatch.yml`](examples/depwatch.yml); the schema is
+[`schema/depwatch.schema.json`](schema/depwatch.schema.json).
+
+```yaml
+version: 1
+production_branch: main
+runtimes:
+  ruby: "3.3.4"
+  node: "20.11.1"
+databases:
+  - engine: postgres
+    version: "16"
+hosting:
+  - name: heroku-stack
+    version: "24"
+images:
+  - ruby:3.3.4-slim-bookworm
+ignore:
+  - docs/
+```
+
+Runtimes also come from `.ruby-version`, `.nvmrc`, `.node-version`, `.python-version` and
+`.tool-versions`. When `depwatch.yml` and a version file in the same folder disagree, both are listed
+and the output says they disagree. Runtimes are listed and not yet checked in this version; the
+output says so.
+
+## In CI
+
+```yaml
+# .github/workflows/depwatch.yml
+name: depwatch
+on: [push, pull_request]
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install depwatch
+        run: |
+          curl -sSL -o depwatch.tar.gz https://github.com/kimathinjoki/depwatch-cli/releases/download/v0.1.0/depwatch_0.1.0_linux_amd64.tar.gz
+          tar -xzf depwatch.tar.gz depwatch
+      - name: Build the image
+        run: docker build -t app:ci . && docker save app:ci -o app.tar
+      - name: Gate
+        run: ./depwatch gate --image app.tar --fail-on malicious,kev,severe
+```
+
+Reading the built image (`--image app.tar`) checks the operating system packages production will
+actually run.
+
+## What it reads
+
+Every lockfile OSV-SCALIBR reads: npm, yarn, pnpm and bun; Composer; Bundler; pip, poetry, uv,
+pipenv and pdm; Go modules; Cargo; Maven and Gradle; NuGet; Pub; Mix; Swift Package Manager and
+CocoaPods; and more. Dependency paths and scope are read from the lockfile itself for Bundler, npm,
+yarn, pnpm, Composer, poetry, uv, Cargo and NuGet; for other files the path reads "path not
+recorded" and scope comes from what the file says, or production (the louder answer) when it says
+nothing. Operating system packages are read from Debian, Ubuntu, Alpine and Red Hat family package
+databases. The full table is in ARCHITECTURE.md.
+
+## Build and test
+
+```sh
+make build      # bin/depwatch, stamped with the git version
+make test       # unit tests and the known incidents corpus, offline, with the race detector
+make lint       # gofmt, go vet, staticcheck
+make live       # the corpus against the real sources (network), reporting any drift
+make snapshot   # six release binaries and checksums in dist/, checked; nothing is published
+```
+
+No test reaches the network by default. Source answers are recorded under `testdata/`; the `live`
+build tag re-runs the corpus against the real sources. To refresh the recordings after a reviewed
+change: `go test -tags live ./internal/corpus -run TestCorpusLive -update`, then review the diff of
+every `expected.json`.
+
+The known incidents corpus (`testdata/corpus/`) holds real cases: Log4Shell, rack in a Rails
+lockfile, the event-stream and ua-parser-js compromises, the xz backdoor in a Debian filesystem, a
+Django lockfile, a critical advisory with no EPSS score, a development-only critical, a corrupt
+lockfile with an unsupported file, and a stalled source. A change that drops one fails the build.
+
+The ranking rules are every case in `testdata/ranking_cases.json`; the depwatch server carries an
+identical copy and tests against it.
+
+## Licence
+
+MIT. Copyright 2026 kimathinjoki.

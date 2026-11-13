@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kimathinjoki/depwatch-cli/schema/inventory.schema.json",
+  "title": "depwatch inventory",
+  "description": "Everything one part contains on one commit, and how it was taken. Version 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "cli_version",
+    "taken_at",
+    "taken_by",
+    "part",
+    "packages",
+    "os_packages",
+    "runtimes",
+    "images",
+    "files_read",
+    "files_not_read",
+    "unsupported",
+    "unpinned",
+    "conflicts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "cli_version": {
+      "type": "string"
+    },
+    "taken_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "taken_by": {
+      "enum": [
+        "cli",
+        "github"
+      ]
+    },
+    "part": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "commit",
+        "branch",
+        "production_branch"
+      ],
+      "properties": {
+        "root": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "production_branch": {
+          "type": "string"
+        }
+      }
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ecosystem",
+          "name",
+          "version",
+          "range",
+          "purl",
+          "scope",
+          "scope_recorded",
+          "relation",
+          "source_file",
+          "paths",
+          "more_paths",
+          "paths_recorded"
+        ],
+        "properties": {
+          "ecosystem": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "range": {
+            "type": "string"
+          },
+          "purl": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "production",
+              "development"
+            ]
+          },
+          "scope_recorded": {
+            "type": "boolean"
+          },
+          "relation": {
+            "enum": [
+              "direct",
+              "transitive",
+              "unknown"
+            ]
+          },
+          "source_file": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "version"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "more_paths": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "paths_recorded": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "os_packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "distribution",
+          "release",
+          "ecosystem",
+          "name",
+          "version",
+          "source_name",
+          "source_version",
+          "purl",
+          "source_file",
+          "image"
+        ],
+        "properties": {
+          "distribution": {
+            "type": "string"
+          },
+          "release": {
+            "type": "string"
+          },
+          "ecosystem": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "source_name": {
+            "type": "string"
+          },
+          "source_version": {
+            "type": "string"
+          },
+          "purl": {
+            "type": "string"
+          },
+          "source_file": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtimes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "name",
+          "version",
+          "source_file"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "runtime",
+              "database",
+              "hosting"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "source_file": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference",
+          "read",
+          "reason",
+          "packages"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "files_read": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "ecosystem",
+          "reader",
+          "packages"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "ecosystem": {
+            "type": "string"
+          },
+          "reader": {
+            "type": "string"
+          },
+          "packages": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "files_not_read": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "reason"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unsupported": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "ecosystem"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "ecosystem": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unpinned": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "ecosystem"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "ecosystem": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "runtimes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "runtimes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "name",
+                "version",
+                "source_file"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "runtime",
+                    "database",
+                    "hosting"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "source_file": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

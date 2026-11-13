@@ -1,0 +1,10 @@
+{
+  "description": "A uv lockfile with Django 4.2.0 in production scope, carrying known CVEs (CVE-2023-31047: critical, EPSS below the threshold, so high), and pytest in development (development only).",
+  "args": [],
+  "key": "CVE-2023-31047",
+  "key_level": "high",
+  "key_labels": [],
+  "key_paths": [
+    "django"
+  ]
+}

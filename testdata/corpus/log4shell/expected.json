@@ -1,0 +1,51 @@
+{
+  "exit_code": 1,
+  "complete": true,
+  "source_errors": [],
+  "findings": [
+    {
+      "id": "CVE-2021-44228",
+      "level": "severe",
+      "labels": [
+        "exploited_now"
+      ]
+    },
+    {
+      "id": "CVE-2021-44832",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2021-45046",
+      "level": "severe",
+      "labels": [
+        "exploited_now"
+      ]
+    },
+    {
+      "id": "CVE-2021-45105",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2025-68161",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-34477",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-34479",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-34480",
+      "level": "medium",
+      "labels": []
+    }
+  ]
+}

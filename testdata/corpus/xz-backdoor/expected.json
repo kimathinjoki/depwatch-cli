@@ -1,0 +1,22 @@
+{
+  "exit_code": 1,
+  "complete": true,
+  "source_errors": [],
+  "findings": [
+    {
+      "id": "CVE-2024-3094",
+      "level": "severe",
+      "labels": []
+    },
+    {
+      "id": "CVE-2025-31115",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-34743",
+      "level": "medium",
+      "labels": []
+    }
+  ]
+}

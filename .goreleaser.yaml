@@ -1,0 +1,45 @@
+# Builds one static binary per platform with checksums and version stamping.
+# `make snapshot` runs it locally; nothing is published from here.
+version: 2
+
+project_name: depwatch
+
+builds:
+  - id: depwatch
+    main: ./cmd/depwatch
+    binary: depwatch
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/kimathinjoki/depwatch-cli/internal/version.Version={{ .Version }}
+      - -X github.com/kimathinjoki/depwatch-cli/internal/version.Commit={{ .ShortCommit }}
+      - -X github.com/kimathinjoki/depwatch-cli/internal/version.Date={{ .Date }}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: depwatch
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "depwatch_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-snapshot"
+
+changelog:
+  disable: true
+
+release:
+  disable: true

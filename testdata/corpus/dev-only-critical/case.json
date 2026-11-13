@@ -1,0 +1,9 @@
+{
+  "description": "A development-only critical: vm2 3.9.17 as a dev dependency. CVE-2023-37466 is critical with an EPSS score below the threshold, so high in production; development only drops it one level to medium. Listed, and not failing the default gate.",
+  "args": [],
+  "key": "CVE-2023-37466",
+  "key_level": "medium",
+  "key_labels": [
+    "development_only"
+  ]
+}

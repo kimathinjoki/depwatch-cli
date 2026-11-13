@@ -1,0 +1,20 @@
+C:Q1abc=
+P:musl
+V:1.2.5-r0
+A:x86_64
+S:400000
+I:600000
+T:the musl c library (libc) implementation
+o:musl
+m:Natanael Copa <ncopa@alpinelinux.org>
+
+C:Q1def=
+P:xz-libs
+V:5.6.1-r0
+A:x86_64
+S:70000
+I:150000
+T:Library and CLI tools for XZ and LZMA compressed files (libraries)
+o:xz
+m:Natanael Copa <ncopa@alpinelinux.org>
+

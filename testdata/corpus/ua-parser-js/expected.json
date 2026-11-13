@@ -1,0 +1,14 @@
+{
+  "exit_code": 1,
+  "complete": true,
+  "source_errors": [],
+  "findings": [
+    {
+      "id": "GHSA-pjwm-rvh2-c87w",
+      "level": "severe",
+      "labels": [
+        "malicious"
+      ]
+    }
+  ]
+}

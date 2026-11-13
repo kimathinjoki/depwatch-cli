@@ -1,0 +1,28 @@
+{
+  "exit_code": 1,
+  "complete": true,
+  "source_errors": [],
+  "findings": [
+    {
+      "id": "GHSA-9x64-5r7x-2q53",
+      "level": "severe",
+      "labels": [
+        "malicious"
+      ]
+    },
+    {
+      "id": "GHSA-mh6f-8j2x-4483",
+      "level": "severe",
+      "labels": [
+        "malicious"
+      ]
+    },
+    {
+      "id": "MAL-2025-20690",
+      "level": "severe",
+      "labels": [
+        "malicious"
+      ]
+    }
+  ]
+}

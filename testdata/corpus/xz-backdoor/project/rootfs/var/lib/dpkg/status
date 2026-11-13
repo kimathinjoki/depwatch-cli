@@ -1,0 +1,20 @@
+Package: liblzma5
+Status: install ok installed
+Priority: required
+Section: libs
+Maintainer: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Architecture: amd64
+Multi-Arch: same
+Source: xz-utils
+Version: 5.6.1-1
+Description: XZ-format compression library
+
+Package: xz-utils
+Status: install ok installed
+Priority: standard
+Section: utils
+Maintainer: Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+Architecture: amd64
+Multi-Arch: foreign
+Version: 5.6.1-1
+Description: XZ-format compression utilities

@@ -1,0 +1,9 @@
+{
+  "description": "Log4Shell: log4j-core 2.14.1 in a Maven project. Exploited now, severe, fails the default gate.",
+  "args": [],
+  "key": "CVE-2021-44228",
+  "key_level": "severe",
+  "key_labels": [
+    "exploited_now"
+  ]
+}

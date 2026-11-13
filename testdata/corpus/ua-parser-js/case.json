@@ -1,0 +1,9 @@
+{
+  "description": "The ua-parser-js hijacked release 0.7.29 in a yarn lockfile. Malicious (CWE-506, embedded malicious code), severe.",
+  "args": [],
+  "key": "GHSA-pjwm-rvh2-c87w",
+  "key_level": "severe",
+  "key_labels": [
+    "malicious"
+  ]
+}

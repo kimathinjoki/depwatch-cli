@@ -1,0 +1,4 @@
+{
+  "description": "A corrupt lockfile and an unsupported file. Incomplete: exit 2, never clean.",
+  "args": []
+}

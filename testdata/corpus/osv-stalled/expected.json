@@ -1,0 +1,8 @@
+{
+  "exit_code": 2,
+  "complete": false,
+  "source_errors": [
+    "OSV"
+  ],
+  "findings": []
+}

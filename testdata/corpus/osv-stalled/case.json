@@ -1,0 +1,7 @@
+{
+  "description": "The silence test: OSV does not answer. The run is incomplete (exit 2) and names OSV; nothing reads as clean.",
+  "args": [],
+  "fail": [
+    "OSV"
+  ]
+}

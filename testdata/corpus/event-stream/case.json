@@ -1,0 +1,12 @@
+{
+  "description": "The event-stream compromise: event-stream 3.3.6 pulling in flatmap-stream 0.1.1, in a package-lock.json. Malicious, severe.",
+  "args": [],
+  "key": "MAL-2025-20690",
+  "key_level": "severe",
+  "key_labels": [
+    "malicious"
+  ],
+  "key_paths": [
+    "event-stream > flatmap-stream"
+  ]
+}

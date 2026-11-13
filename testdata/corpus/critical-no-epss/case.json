@@ -1,0 +1,13 @@
+{
+  "description": "A critical advisory with no EPSS score: vm2 3.9.17 in production. The recording is real with the EPSS scores removed, standing for an advisory EPSS has not scored yet. Severe, provisional.",
+  "args": [
+    "--fail-on",
+    "severe"
+  ],
+  "drop_epss": true,
+  "key": "CVE-2023-37466",
+  "key_level": "severe",
+  "key_labels": [
+    "provisional"
+  ]
+}

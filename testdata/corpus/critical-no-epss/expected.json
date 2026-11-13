@@ -1,0 +1,355 @@
+{
+  "exit_code": 1,
+  "complete": true,
+  "source_errors": [],
+  "findings": [
+    {
+      "id": "CVE-2023-32313",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2023-32314",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2023-37466",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2023-37903",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-100721",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-100722",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-100723",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-22709",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-24118",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-24120",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-24781",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-26332",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-26956",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-43997",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-44000",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-44001",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-44002",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-44003",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-44004",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-44005",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-44006",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-44007",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-44008",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-44009",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-45411",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-47131",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-47135",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-47137",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-47139",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-47140",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-47141",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-47208",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-47209",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-47210",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-47683",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-47686",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-47698",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92933",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92934",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92942",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92945",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92946",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92947",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92948",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92949",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92950",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92951",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92955",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92957",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92958",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92959",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92960",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    },
+    {
+      "id": "CVE-2026-92961",
+      "level": "high",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92962",
+      "level": "low",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-92963",
+      "level": "medium",
+      "labels": []
+    },
+    {
+      "id": "CVE-2026-93605",
+      "level": "severe",
+      "labels": [
+        "provisional"
+      ]
+    }
+  ]
+}

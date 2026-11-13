@@ -1,0 +1,540 @@
+{
+  "description": "Every ranking rule as a case. The CLI (depwatch-cli/testdata/ranking_cases.json) and the server carry identical copies and both test against them. Change both together.",
+  "version": 1,
+  "cases": [
+    {
+      "name": "exploited now in production",
+      "input": {
+        "scope": "production",
+        "kev": true,
+        "malicious": false,
+        "cvss": 10.0,
+        "source_label": "",
+        "epss": 0.97
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "exploited_now"
+        ]
+      }
+    },
+    {
+      "name": "exploited now with a low CVSS is still severe",
+      "input": {
+        "scope": "production",
+        "kev": true,
+        "malicious": false,
+        "cvss": 5.3,
+        "source_label": "",
+        "epss": 0.02
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "exploited_now"
+        ]
+      }
+    },
+    {
+      "name": "exploited now with no severity at all is severe",
+      "input": {
+        "scope": "production",
+        "kev": true,
+        "malicious": false,
+        "cvss": null,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "exploited_now"
+        ]
+      }
+    },
+    {
+      "name": "exploited now in development drops to high",
+      "input": {
+        "scope": "development",
+        "kev": true,
+        "malicious": false,
+        "cvss": 10.0,
+        "source_label": "",
+        "epss": 0.97
+      },
+      "expected": {
+        "level": "high",
+        "labels": [
+          "exploited_now",
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "malicious in production",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": true,
+        "cvss": null,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "malicious"
+        ]
+      }
+    },
+    {
+      "name": "malicious in development scope is still severe",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": true,
+        "cvss": null,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "malicious"
+        ]
+      }
+    },
+    {
+      "name": "malicious with a low source label is still severe",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": true,
+        "cvss": null,
+        "source_label": "low",
+        "epss": null
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "malicious"
+        ]
+      }
+    },
+    {
+      "name": "critical with EPSS at the threshold",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.8,
+        "source_label": "",
+        "epss": 0.1
+      },
+      "expected": {
+        "level": "severe",
+        "labels": []
+      }
+    },
+    {
+      "name": "critical with EPSS above the threshold",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.8,
+        "source_label": "",
+        "epss": 0.55
+      },
+      "expected": {
+        "level": "severe",
+        "labels": []
+      }
+    },
+    {
+      "name": "critical with no EPSS score is severe and provisional",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.8,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "provisional"
+        ]
+      }
+    },
+    {
+      "name": "critical with low EPSS is high",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.8,
+        "source_label": "",
+        "epss": 0.004
+      },
+      "expected": {
+        "level": "high",
+        "labels": []
+      }
+    },
+    {
+      "name": "critical with a custom threshold",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.1,
+        "source_label": "",
+        "epss": 0.03,
+        "epss_threshold": 0.02
+      },
+      "expected": {
+        "level": "severe",
+        "labels": []
+      }
+    },
+    {
+      "name": "critical just below a custom threshold",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.1,
+        "source_label": "",
+        "epss": 0.019,
+        "epss_threshold": 0.02
+      },
+      "expected": {
+        "level": "high",
+        "labels": []
+      }
+    },
+    {
+      "name": "critical by source label with no CVSS and no EPSS is severe provisional",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": null,
+        "source_label": "CRITICAL",
+        "epss": null
+      },
+      "expected": {
+        "level": "severe",
+        "labels": [
+          "provisional"
+        ]
+      }
+    },
+    {
+      "name": "high CVSS is high",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 7.5,
+        "source_label": "",
+        "epss": 0.01
+      },
+      "expected": {
+        "level": "high",
+        "labels": []
+      }
+    },
+    {
+      "name": "high CVSS with no EPSS is high",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 8.1,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "high",
+        "labels": []
+      }
+    },
+    {
+      "name": "high CVSS with high EPSS stays high",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 8.8,
+        "source_label": "",
+        "epss": 0.9
+      },
+      "expected": {
+        "level": "high",
+        "labels": []
+      }
+    },
+    {
+      "name": "no CVSS but a source label of high",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": null,
+        "source_label": "HIGH",
+        "epss": 0.001
+      },
+      "expected": {
+        "level": "high",
+        "labels": []
+      }
+    },
+    {
+      "name": "no CVSS and a source label of moderate",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": null,
+        "source_label": "MODERATE",
+        "epss": 0.001
+      },
+      "expected": {
+        "level": "medium",
+        "labels": []
+      }
+    },
+    {
+      "name": "no severity at all is high",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": null,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "high",
+        "labels": [
+          "unscored"
+        ]
+      }
+    },
+    {
+      "name": "no severity at all in development is medium",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": false,
+        "cvss": null,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "medium",
+        "labels": [
+          "unscored",
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "medium CVSS is medium",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 5.3,
+        "source_label": "",
+        "epss": 0.001
+      },
+      "expected": {
+        "level": "medium",
+        "labels": []
+      }
+    },
+    {
+      "name": "medium raised by high EPSS",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 6.1,
+        "source_label": "",
+        "epss": 0.4
+      },
+      "expected": {
+        "level": "high",
+        "labels": []
+      }
+    },
+    {
+      "name": "low CVSS is low",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 3.1,
+        "source_label": "",
+        "epss": 0.0005
+      },
+      "expected": {
+        "level": "low",
+        "labels": []
+      }
+    },
+    {
+      "name": "low raised by high EPSS",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 3.7,
+        "source_label": "",
+        "epss": 0.2
+      },
+      "expected": {
+        "level": "medium",
+        "labels": []
+      }
+    },
+    {
+      "name": "a development-only critical drops one level",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.8,
+        "source_label": "",
+        "epss": 0.6
+      },
+      "expected": {
+        "level": "high",
+        "labels": [
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "a development-only critical with no EPSS drops to high and stays provisional",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.8,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "high",
+        "labels": [
+          "provisional",
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "a development-only critical with low EPSS drops to medium",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": false,
+        "cvss": 9.8,
+        "source_label": "",
+        "epss": 0.001
+      },
+      "expected": {
+        "level": "medium",
+        "labels": [
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "a development-only high drops to medium",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": false,
+        "cvss": 7.5,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "medium",
+        "labels": [
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "a development-only medium drops to low",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": false,
+        "cvss": 5.0,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "low",
+        "labels": [
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "a development-only low stays low",
+      "input": {
+        "scope": "development",
+        "kev": false,
+        "malicious": false,
+        "cvss": 2.0,
+        "source_label": "",
+        "epss": null
+      },
+      "expected": {
+        "level": "low",
+        "labels": [
+          "development_only"
+        ]
+      }
+    },
+    {
+      "name": "CVSS takes precedence over the source label",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": 5.0,
+        "source_label": "CRITICAL",
+        "epss": 0.0
+      },
+      "expected": {
+        "level": "medium",
+        "labels": []
+      }
+    },
+    {
+      "name": "Debian's unimportant label is low",
+      "input": {
+        "scope": "production",
+        "kev": false,
+        "malicious": false,
+        "cvss": null,
+        "source_label": "unimportant",
+        "epss": null
+      },
+      "expected": {
+        "level": "low",
+        "labels": []
+      }
+    }
+  ]
+}
