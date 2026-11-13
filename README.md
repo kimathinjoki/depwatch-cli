@@ -107,6 +107,10 @@ The default is `--fail-on malicious,kev`. Other flags: `--allow-incomplete` (exi
 when the check is incomplete and nothing meets the threshold), `--epss-threshold 0.10` (the EPSS
 probability at or above which a critical finding is severe), `--image`, `--rootfs`, `--json`.
 
+A folder with no dependency files at all (for example a CI job that never checked the code out) is
+not clean: `gate` says "No dependency files found in this folder. Nothing was checked; this is not a
+clean result." and exits 2.
+
 `gate` pulls base images named in `depwatch.yml` or a Dockerfile's final stage, unless `--image` or
 `--rootfs` already gave it the built image. A base image it cannot pull makes the run incomplete.
 
@@ -198,7 +202,7 @@ what `--help` says.
 | 0 | Nothing meets the threshold and the check is complete |
 | 1 | A finding meets the threshold. Wins over incomplete. |
 | 2 | Incomplete: something could not be read or checked, or a source did not answer. 0 instead with `--allow-incomplete` when nothing meets the threshold. |
-| 3 | A usage or `depwatch.yml` error |
+| 3 | A usage or `depwatch.yml` error, including a path that does not exist or is not a folder |
 
 Every command accepts `--json`, which switches all output, errors included, to JSON. Colour is used
 only when the output is a terminal, and `NO_COLOR` turns it off.

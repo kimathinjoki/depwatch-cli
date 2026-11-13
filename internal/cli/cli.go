@@ -101,6 +101,25 @@ func Run(args []string, env Env) int {
 	return ExitUsage
 }
 
+// partRoot is the folder a command reads: the path given, or the current folder. A path that does
+// not exist, or is not a folder, is a usage error naming the path as given.
+func partRoot(args []string) (string, error) {
+	root := "."
+	if len(args) == 1 {
+		root = args[0]
+	}
+	st, err := os.Stat(root)
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		return "", &usageError{msg: fmt.Sprintf("the path %q does not exist", root)}
+	case err != nil:
+		return "", &usageError{msg: fmt.Sprintf("the path %q cannot be read: %v", root, err)}
+	case !st.IsDir():
+		return "", &usageError{msg: fmt.Sprintf("the path %q is not a folder", root)}
+	}
+	return root, nil
+}
+
 func writeError(env Env, jsonOut bool, msg string) {
 	if jsonOut {
 		enc := json.NewEncoder(env.Stdout)

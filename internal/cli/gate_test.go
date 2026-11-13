@@ -128,3 +128,41 @@ func TestGateListsRuntimesAsNotChecked(t *testing.T) {
 		t.Fatalf("%s", out)
 	}
 }
+
+// A folder with no dependency files at all (a workflow that forgot to check the code out) is not a
+// clean result: the gate exits 2 and says plainly that nothing was found to check.
+func TestGateNothingToCheckIsIncomplete(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{"README.md": "hello", ".ruby-version": "3.3.4\n"})
+	code, out, _ := run(t, &sources.Recording{OSVQueries: map[string][]string{}}, "gate", dir)
+	if code != ExitIncomplete || !strings.Contains(out, "No dependency files found in this folder") || strings.Contains(out, "Passed") {
+		t.Fatalf("exit %d\n%s", code, out)
+	}
+	_, js, _ := run(t, &sources.Recording{OSVQueries: map[string][]string{}}, "gate", "--json", dir)
+	var res GateResult
+	if err := json.Unmarshal([]byte(js), &res); err != nil {
+		t.Fatal(err)
+	}
+	if res.Complete || res.ExitCode != ExitIncomplete || len(res.NotChecked) == 0 {
+		t.Fatalf("%+v", res)
+	}
+	// A lockfile with no packages in it was looked at: that is a clean, complete result.
+	empty := testutil.Tree(t, map[string]string{"package.json": `{}`, "package-lock.json": `{"lockfileVersion":3,"packages":{"":{}}}`})
+	if code, out, _ := run(t, &sources.Recording{OSVQueries: map[string][]string{}}, "gate", empty); code != ExitOK {
+		t.Fatalf("an empty lockfile was read: exit %d\n%s", code, out)
+	}
+}
+
+// A path that does not exist is a usage error naming the path given.
+func TestGateMissingPathIsUsage(t *testing.T) {
+	missing := t.TempDir() + "/nowhere"
+	for _, cmd := range []string{"gate", "inventory"} {
+		code, _, errOut := run(t, nil, cmd, missing)
+		if code != ExitUsage || !strings.Contains(errOut, missing) {
+			t.Fatalf("%s: exit %d: %s", cmd, code, errOut)
+		}
+	}
+	file := testutil.Tree(t, map[string]string{"a.txt": "x"}) + "/a.txt"
+	if code, _, errOut := run(t, nil, "gate", file); code != ExitUsage || !strings.Contains(errOut, "not a folder") {
+		t.Fatalf("a file: exit %d: %s", code, errOut)
+	}
+}

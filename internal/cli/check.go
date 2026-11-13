@@ -37,9 +37,9 @@ login); the depwatch server never sees the key.
 Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or a rejected result.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
-			root := "."
-			if len(args) == 1 {
-				root = args[0]
+			root, err := partRoot(args)
+			if err != nil {
+				return err
 			}
 			root, _ = filepath.Abs(root)
 			srv, tok, err := resolveServer(env, server, token)

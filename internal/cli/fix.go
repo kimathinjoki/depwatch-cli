@@ -37,9 +37,9 @@ pull request.
 Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or a refused one.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
-			root := "."
-			if len(args) == 1 {
-				root = args[0]
+			root, err := partRoot(args)
+			if err != nil {
+				return err
 			}
 			root, _ = filepath.Abs(root)
 			srv, tok, err := resolveServer(env, server, token)

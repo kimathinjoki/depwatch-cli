@@ -42,9 +42,9 @@ depwatch gate pulls them, or pass --image.
 Exit codes: 0 complete, 2 incomplete (something could not be read), 3 usage or depwatch.yml error.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
-			root := "."
-			if len(args) == 1 {
-				root = args[0]
+			root, err := partRoot(args)
+			if err != nil {
+				return err
 			}
 			if takenBy != "cli" && takenBy != "github" {
 				return &usageError{msg: "--taken-by is cli or github"}

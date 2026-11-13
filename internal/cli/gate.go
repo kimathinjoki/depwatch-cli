@@ -18,6 +18,9 @@ import (
 	"github.com/kimathinjoki/depwatch-cli/internal/version"
 )
 
+// nothingFoundWhy is the reason given when a folder holds no dependency files at all.
+const nothingFoundWhy = "no dependency files found: nothing was checked (is the code checked out here?)"
+
 // Thresholds --fail-on accepts.
 var thresholds = map[string]string{
 	"malicious": "a malicious release, in any scope (its install scripts already ran)",
@@ -68,9 +71,9 @@ Exit codes:
   3  a usage or depwatch.yml error`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
-			root := "."
-			if len(args) == 1 {
-				root = args[0]
+			root, err := partRoot(args)
+			if err != nil {
+				return err
 			}
 			fail, err := parseFailOn(failOn)
 			if err != nil {
@@ -171,6 +174,9 @@ func meets(f match.Finding, fail map[string]bool) bool {
 // inventoryGaps turns what the inventory could not read into not-checked entries.
 func inventoryGaps(inv *inventory.Inventory) []match.NotChecked {
 	var out []match.NotChecked
+	if inv.NothingFound() {
+		out = append(out, match.NotChecked{What: "this folder", Why: nothingFoundWhy, Incomplete: true})
+	}
 	for _, f := range inv.FilesNotRead {
 		out = append(out, match.NotChecked{What: f.Path, Why: f.Reason, Incomplete: true})
 	}
@@ -246,7 +252,9 @@ var labelWords = map[string]string{
 func printGate(w io.Writer, st style, inv *inventory.Inventory, res GateResult, fail map[string]bool) {
 	fmt.Fprintf(w, "%s  %s\n\n", st.bold("depwatch gate"), partLine(inv))
 	if len(res.Findings) == 0 {
-		if res.Complete {
+		if inv.NothingFound() {
+			fmt.Fprintln(w, st.deepOrange("No dependency files found in this folder.")+" Nothing was checked; this is not a clean result.")
+		} else if res.Complete {
 			fmt.Fprintln(w, st.green("No findings.")+fmt.Sprintf(" %d packages checked against OSV, CISA KEV and EPSS.", res.PackagesChecked))
 		} else {
 			fmt.Fprintln(w, st.deepOrange("No findings in what was checked, but the check is incomplete.")+" This is not a clean result; see below.")

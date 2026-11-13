@@ -167,6 +167,14 @@ func (inv *Inventory) Complete() bool {
 	return true
 }
 
+// NothingFound reports that the folder held nothing to check: no dependency file was read or found
+// unreadable, no ecosystem was found unsupported, no manifest was found, and no image or root
+// filesystem was named. That is never a clean result: the code may not be there at all.
+func (inv *Inventory) NothingFound() bool {
+	return len(inv.FilesRead) == 0 && len(inv.FilesNotRead) == 0 && len(inv.Unsupported) == 0 &&
+		len(inv.Unpinned) == 0 && len(inv.Images) == 0 && len(inv.Packages) == 0 && len(inv.OSPackages) == 0
+}
+
 // Normalize replaces nil slices with empty ones so the JSON never carries null lists.
 func (inv *Inventory) Normalize() {
 	if inv.Packages == nil {
