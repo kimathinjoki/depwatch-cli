@@ -15,7 +15,7 @@ import (
 func sample() *Inventory {
 	return &Inventory{
 		SchemaVersion: SchemaVersion, CLIVersion: "1.2.3", TakenAt: "2026-11-12T10:00:00Z", TakenBy: "cli",
-		Part: Part{Root: "prospec360", Commit: "abc", Branch: "main", ProductionBranch: "main"},
+		Part: Part{Root: "storefront", Commit: "abc", Branch: "main", ProductionBranch: "main"},
 		Packages: []Package{{Ecosystem: "RubyGems", Name: "rack", Version: "2.2.3", PURL: "pkg:gem/rack@2.2.3",
 			Scope: ScopeProduction, ScopeRecorded: true, Relation: RelationTransitive, SourceFile: "api/Gemfile.lock",
 			Paths: [][]Step{{{Name: "rails", Version: "7.0.4"}, {Name: "rack", Version: "2.2.3"}}}, MorePaths: 2, PathsRecorded: true}},

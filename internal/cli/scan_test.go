@@ -35,7 +35,7 @@ func TestScanPostsTheInventory(t *testing.T) {
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		_, _ = w.Write([]byte(`{"part":"api","application":"Prospec360","inventory_id":7,"production":true,"url":"http://x/inventories/7"}`))
+		_, _ = w.Write([]byte(`{"part":"api","application":"Storefront","inventory_id":7,"production":true,"url":"http://x/inventories/7"}`))
 	}))
 	defer srv.Close()
 	dir := testutil.CopyDir(t, "../../testdata/fixtures/monorepo")
@@ -59,7 +59,7 @@ func TestScanPostsTheInventory(t *testing.T) {
 	if string(ja) != string(jb) {
 		t.Fatalf("scan sent a different inventory:\n%s\n%s", ja, jb)
 	}
-	if !strings.Contains(out.String(), "production") || !strings.Contains(out.String(), "Prospec360") {
+	if !strings.Contains(out.String(), "production") || !strings.Contains(out.String(), "Storefront") {
 		t.Fatalf("%s", out.String())
 	}
 }
@@ -97,7 +97,7 @@ func TestScanErrors(t *testing.T) {
 }
 
 // A server that will not look now (429, the plan's scans for today are used) is not a clean result:
-// scan prints the server's reason and exits 2. depwatch-server's InventoriesController answers this.
+// scan prints the server's reason and exits 2.
 func TestScanNotLookedExitsIncomplete(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -1,8 +1,7 @@
 // Package rank gives a finding its level: severe, high, medium or low, with its labels.
 //
-// The rules are the design's (section 7.4), written out as a table in SYSTEM.md, and every rule is a
-// case in testdata/ranking_cases.json. The server carries an identical copy of that file and tests
-// against it, so the CLI and the server can never rank differently.
+// Every rule is a case in testdata/ranking_cases.json. The depwatch service is tested against the
+// same cases, so the CLI and the service can never rank differently.
 package rank
 
 import (

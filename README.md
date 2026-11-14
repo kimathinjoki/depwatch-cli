@@ -6,9 +6,10 @@ operating system packages of its images) and checks it for known vulnerabilities
 releases. It runs where the code already is, on a developer's machine or in CI, and needs no
 depwatch server.
 
-It is one part of depwatch. What the system does and why is in
-[`depwatch-docs/SYSTEM.md`](../depwatch-docs/SYSTEM.md); how it is built is in
-[`depwatch-docs/ARCHITECTURE.md`](../depwatch-docs/ARCHITECTURE.md).
+It is the open part of depwatch. On its own it fails a CI build on what is exploited now, with no
+account. With the depwatch service, `scan` sends the inventory (never the code) so findings are kept
+across applications until a person decides them. The GitHub Action
+[`depwatch-action`](https://github.com/kimathinjoki/depwatch-action) runs it in CI.
 
 The rule it never breaks: **nothing reads as clean when depwatch did not look.** A file it could not
 read, an ecosystem it does not support, an image it could not pull or a source that did not answer
@@ -34,7 +35,7 @@ Lists everything the project contains, and everything that could not be read. Ma
 
 ```text
 $ depwatch inventory
-depwatch inventory  prospec360  main 3f2c1a9
+depwatch inventory  storefront  main 3f2c1a9
 
 Not read (1)
   client/package-lock.json
@@ -208,7 +209,7 @@ elsewhere and install it with `--archive all.zip` (one ecosystem at a time).
 
 ### `depwatch match --mirror <dir> --inventory <file>`
 
-The depwatch server's matcher: reads an inventory file and answers, from a mirror, which advisories
+Reads an inventory file and answers, from a mirror, which advisories
 affect each package, with each advisory's entry, facts (CVSS score, source severity, malicious, CVEs)
 and fix versions. It does no ranking. You will rarely run it yourself.
 
@@ -289,7 +290,7 @@ jobs:
         run: depwatch gate --image app.tar --fail-on malicious,kev,severe
 ```
 
-Once releases are published, [`depwatch-action`](../depwatch-action) installs a release whose
+Once releases are published, [`depwatch-action`](https://github.com/kimathinjoki/depwatch-action) installs a release whose
 checksums it carries (its `version` input is required) and runs the command.
 
 Reading the built image (`--image app.tar`) checks the operating system packages production will
@@ -303,7 +304,7 @@ CocoaPods; and more. Dependency paths and scope are read from the lockfile itsel
 yarn, pnpm, Composer, poetry, uv, Cargo and NuGet; for other files the path reads "path not
 recorded" and scope comes from what the file says, or production (the louder answer) when it says
 nothing. Operating system packages are read from Debian, Ubuntu, Alpine and Red Hat family package
-databases. The full table is in ARCHITECTURE.md.
+databases.
 
 ## Settings
 
@@ -331,8 +332,8 @@ lockfile, the event-stream and ua-parser-js compromises, the xz backdoor in a De
 Django lockfile, a critical advisory with no EPSS score, a development-only critical, a corrupt
 lockfile with an unsupported file, and a stalled source. A change that drops one fails the build.
 
-The ranking rules are every case in `testdata/ranking_cases.json`; the depwatch server carries an
-identical copy and tests against it.
+The ranking rules are every case in `testdata/ranking_cases.json`; the depwatch service is tested
+against the same cases, so both rank alike.
 
 ## Licence
 
