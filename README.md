@@ -132,7 +132,7 @@ depwatch scan
 ```
 
 The server and token come from `--server` and `--token`, else `DEPWATCH_SERVER` and `DEPWATCH_TOKEN`,
-else the last `depwatch login`. Exit codes: `0` sent; `2` the server did not answer; `3` no token, a
+else the last `depwatch login`. Exit codes: `0` sent; `2` the server did not answer, or did not look (a hosted plan's scans for today are used; the server's reason is printed); `3` no token, a
 refused token, or an inventory the server rejected.
 
 ### `depwatch check [path]`

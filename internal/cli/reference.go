@@ -17,7 +17,7 @@ import (
 var ExitCodes = []RefExit{
 	{ExitOK, "Nothing meets the threshold, and everything was looked at."},
 	{ExitFindings, "A finding meets the threshold (gate), or the server answered with findings that fail."},
-	{ExitIncomplete, "Incomplete: a file could not be read, an ecosystem is not supported, an image could not be pulled, or a source or the server did not answer."},
+	{ExitIncomplete, "Incomplete: a file could not be read, an ecosystem is not supported, an image could not be pulled, or a source or the server did not answer or would not look (the plan's scans for today are used)."},
 	{ExitUsage, "The command line or depwatch.yml is wrong."},
 }
 

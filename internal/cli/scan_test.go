@@ -96,6 +96,31 @@ func TestScanErrors(t *testing.T) {
 	}
 }
 
+// A server that will not look now (429, the plan's scans for today are used) is not a clean result:
+// scan prints the server's reason and exits 2. depwatch-server's InventoriesController answers this.
+func TestScanNotLookedExitsIncomplete(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":"not looked: the plan's scans for today are used (50 of 50 on Free)","not_looked":true}`))
+	}))
+	defer srv.Close()
+	dir := testutil.Tree(t, map[string]string{"go.mod": "module x\n\ngo 1.22\n"})
+	var errOut strings.Builder
+	code := Run([]string{"scan", "--server", srv.URL, dir}, Env{Stdout: io.Discard, Stderr: &errOut, Getenv: func(k string) string {
+		if k == "DEPWATCH_TOKEN" {
+			return "t"
+		}
+		return ""
+	}})
+	if code != ExitIncomplete {
+		t.Fatalf("exit %d, want %d: %s", code, ExitIncomplete, errOut.String())
+	}
+	if !strings.Contains(errOut.String(), "the plan's scans for today are used (50 of 50 on Free)") || !strings.Contains(errOut.String(), "not a clean result") {
+		t.Fatalf("the server's reason is missing: %s", errOut.String())
+	}
+}
+
 // The stored credentials file is created with owner-only permissions, and scan uses it.
 func TestLoginStoresPrivately(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "depwatch", "credentials.json")

@@ -114,6 +114,14 @@ type UnreachableError struct{ Err error }
 func (e *UnreachableError) Error() string { return "the server did not answer: " + e.Err.Error() }
 func (e *UnreachableError) Unwrap() error { return e.Err }
 
+// NotLookedError is an inventory the server received but would not look at now (it answered 429, for
+// example when the workspace's plan has used its scans for today), with the server's reason.
+type NotLookedError struct{ Reason string }
+
+func (e *NotLookedError) Error() string {
+	return "the server did not look at the inventory: " + e.Reason
+}
+
 // PostInventory sends an inventory document.
 func (c *Client) PostInventory(ctx context.Context, doc []byte) (*ScanResponse, error) {
 	hc := c.HTTP
@@ -148,6 +156,15 @@ func (c *Client) PostInventory(ctx context.Context, doc []byte) (*ScanResponse, 
 			e.Error = strings.TrimSpace(string(body))
 		}
 		return nil, &RejectedError{Reason: e.Error}
+	case resp.StatusCode == http.StatusTooManyRequests:
+		var e struct {
+			Error string `json:"error"`
+		}
+		_ = json.Unmarshal(body, &e)
+		if e.Error == "" {
+			e.Error = "it answered 429"
+		}
+		return nil, &NotLookedError{Reason: e.Error}
 	case resp.StatusCode >= 300:
 		return nil, &UnreachableError{Err: fmt.Errorf("it answered %d", resp.StatusCode)}
 	}

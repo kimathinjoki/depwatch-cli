@@ -66,7 +66,8 @@ with the part's token. Only the inventory leaves the machine; the code never doe
 The server and token come from --server and --token, else DEPWATCH_SERVER and DEPWATCH_TOKEN, else
 the last depwatch login.
 
-Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token or a rejected inventory.`,
+Exit codes: 0 sent; 2 the server did not answer, or did not look (the plan's scans for today are
+used), with its reason; 3 no token, a refused token or a rejected inventory.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
 			root, err := partRoot(args)
@@ -96,11 +97,15 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token or 
 			resp, err := cl.PostInventory(ctx, buf.Bytes())
 			var rej *client.RejectedError
 			var unr *client.UnreachableError
+			var notLooked *client.NotLookedError
 			switch {
 			case errors.Is(err, client.ErrRefused):
 				return &usageError{msg: "the server refused the token: check it was created for this part and not revoked"}
 			case errors.As(err, &rej):
 				return &usageError{msg: rej.Error()}
+			case errors.As(err, &notLooked):
+				writeError(*env, jsonFlag(c), notLooked.Error()+". This is not a clean result.")
+				return &exitError{code: ExitIncomplete}
 			case errors.As(err, &unr):
 				writeError(*env, jsonFlag(c), unr.Error()+". Nothing was sent; this is not a clean result.")
 				return &exitError{code: ExitIncomplete}
