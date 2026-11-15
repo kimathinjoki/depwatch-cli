@@ -1,3 +1,5 @@
+//lint:file-ignore ST1005 errors start with the provider's name, a proper noun
+
 package codecheck
 
 import (
