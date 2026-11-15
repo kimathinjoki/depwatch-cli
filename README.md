@@ -145,7 +145,9 @@ a person decides.
 ```sh
 depwatch check                 # with DEPWATCH_SERVER and DEPWATCH_TOKEN, as scan
 depwatch check --dry-run       # print the verdicts, send nothing
-depwatch check --assist        # have Claude draft each verdict, with your own ANTHROPIC_API_KEY
+depwatch check --assist        # have a model draft each verdict, with your own key
+depwatch check --assist --provider google --model gemini-4-argon
+depwatch models --provider openai   # the models --assist can use with that provider
 ```
 
 "Not used" is drafted only when the check can be sure: the package is a direct dependency, the names
@@ -156,8 +158,19 @@ file of its language was searched, and, for Ruby, no `Bundler.require` loads the
 the Gemfile says `require: false`). Otherwise the verdict is unclear, with the reason.
 
 Code leaves the machine only as a few lines around each piece of evidence, and only when the workspace
-owner allowed snippets. With `--assist`, the evidence and the lines around it go to Claude from this
-machine with your key (`--model`, default `claude-opus-5-5`); the depwatch server never sees the key.
+owner allowed snippets. With `--assist`, the evidence and the lines around it go to the provider you
+choose, from this machine with your own key; the depwatch server never sees the key or the code.
+
+| `--provider` | Key | Default `--model` |
+|---|---|---|
+| `anthropic` | `ANTHROPIC_API_KEY`, or your Anthropic login | `claude-opus-5-5` |
+| `google` | `GEMINI_API_KEY` | `gemini-4-carbon` |
+| `openai` | `OPENAI_API_KEY` | none: name one (`depwatch models --provider openai`) |
+
+Without `--provider`, the first key set in that order chooses. The assistant may sharpen a verdict and
+its reason, but never turns a found use into "not used"; a refusal, an error or an answer in the wrong
+form keeps the search's verdict and says why. Google and OpenAI are asked to keep no copy of the
+request.
 
 ### `depwatch fix [path]`
 

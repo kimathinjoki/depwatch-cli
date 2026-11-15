@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go/v2/option"
 	"github.com/spf13/cobra"
 
 	"github.com/kimathinjoki/depwatch-cli/internal/client"
@@ -19,7 +18,7 @@ import (
 var verdictWords = map[string]string{codecheck.Used: "used", codecheck.NotUsed: "not used", codecheck.Unclear: "unclear"}
 
 func newCheck(env *Env) *cobra.Command {
-	var server, token, model, assistURL string
+	var server, token, model, provider, assistURL string
 	var assist, dryRun bool
 	c := &cobra.Command{
 		Use:   "check [path]",
@@ -30,9 +29,13 @@ back a draft verdict for each: used, not used, or unclear, with a reason and evi
 line numbers. A verdict is a draft: it never closes a finding; a person decides.
 
 Code leaves the machine only as short snippets around the evidence, and only when the workspace's owner
-allowed snippets. With --assist, an assistant (Claude) drafts the verdict from the evidence and the
-lines around it, called from this machine with your own key (ANTHROPIC_API_KEY, or your Anthropic
-login); the depwatch server never sees the key.
+allowed snippets. With --assist, an assistant drafts the verdict from the evidence and the lines
+around it, called from this machine with your own key; the depwatch server never sees the key. Choose
+the provider with --provider anthropic|google|openai (else the first key set of ANTHROPIC_API_KEY,
+GEMINI_API_KEY and OPENAI_API_KEY; with none, Anthropic, which can use your Anthropic login) and the
+model with --model (defaults claude-opus-5-5 and gemini-4-carbon; OpenAI needs one named, and depwatch
+models --provider <p> lists them). The assistant may sharpen a verdict but never turns a found use into
+"not used", and a refusal or an error keeps the search's verdict and says why.
 
 Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or a rejected result.`,
 		Args: cobra.MaximumNArgs(1),
@@ -59,11 +62,19 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 			}
 			var assistant *codecheck.Assistant
 			if assist {
-				var opts []option.RequestOption
-				if assistURL != "" {
-					opts = append(opts, option.WithBaseURL(assistURL), option.WithMaxRetries(0))
+				name, err := codecheck.ChooseProvider(provider, env.Getenv)
+				if err != nil {
+					return &usageError{msg: err.Error()}
 				}
-				assistant = codecheck.NewAssistant(model, opts...)
+				m, err := codecheck.ChooseModel(name, model)
+				if err != nil {
+					return &usageError{msg: err.Error()}
+				}
+				p, err := codecheck.NewProvider(ctx, name, assistURL, env.Getenv)
+				if err != nil {
+					return &usageError{msg: "--assist with " + name + ": " + err.Error()}
+				}
+				assistant = codecheck.NewAssistant(p, m)
 			}
 			st := style{on: env.Color}
 			var results []codecheck.Result
@@ -126,8 +137,9 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 	}
 	c.Flags().StringVar(&server, "server", "", "the depwatch server's address (default: DEPWATCH_SERVER, else the last login)")
 	c.Flags().StringVar(&token, "token", "", "the part's token (default: DEPWATCH_TOKEN, else the last login)")
-	c.Flags().BoolVar(&assist, "assist", false, "have Claude draft each verdict from the evidence, with your own key")
-	c.Flags().StringVar(&model, "model", codecheck.DefaultModel, "the model --assist uses")
+	c.Flags().BoolVar(&assist, "assist", false, "have a model draft each verdict from the evidence, with your own key")
+	c.Flags().StringVar(&provider, "provider", "", "the provider --assist uses: anthropic, google or openai (default: the first key set)")
+	c.Flags().StringVar(&model, "model", "", "the model --assist uses (default claude-opus-5-5 or gemini-4-carbon; OpenAI needs one)")
 	c.Flags().BoolVar(&dryRun, "dry-run", false, "print the verdicts without sending them")
 	c.Flags().StringVar(&assistURL, "assist-base-url", "", "the assistant API's address (tests)")
 	_ = c.Flags().MarkHidden("assist-base-url")

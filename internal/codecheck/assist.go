@@ -6,38 +6,28 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/anthropics/anthropic-sdk-go/v2"
-	"github.com/anthropics/anthropic-sdk-go/v2/option"
 )
 
-// DefaultModel drafts verdicts when --assist is given.
+// DefaultModel drafts verdicts when --assist is given with Anthropic.
 const DefaultModel = "claude-opus-5-5"
 
-// Assistant drafts a verdict from the search's evidence with Claude, using the person's own key from
-// their machine (ANTHROPIC_API_KEY, or their Anthropic login). The depwatch server never sees the key.
+// Assistant drafts a verdict from the search's evidence with the person's chosen provider and model,
+// using their own key from their machine. The depwatch server never sees the key.
 type Assistant struct {
-	Client anthropic.Client
-	Model  string
+	Provider Provider
+	Model    string
 }
 
-// NewAssistant builds the client. Extra options (a base URL in tests) are passed through.
-func NewAssistant(model string, opts ...option.RequestOption) *Assistant {
-	if model == "" {
-		model = DefaultModel
-	}
-	return &Assistant{Client: anthropic.NewClient(opts...), Model: model}
-}
+// NewAssistant drafts with the provider and model given.
+func NewAssistant(p Provider, model string) *Assistant { return &Assistant{Provider: p, Model: model} }
 
-var verdictSchema = json.RawMessage(`{
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["verdict", "reason"],
-  "properties": {
-    "verdict": {"type": "string", "enum": ["used", "not_used", "unclear"]},
-    "reason": {"type": "string"}
-  }
-}`)
+var verdictSchema = map[string]any{
+	"type": "object", "additionalProperties": false, "required": []string{"verdict", "reason"},
+	"properties": map[string]any{
+		"verdict": map[string]any{"type": "string", "enum": []string{"used", "not_used", "unclear"}},
+		"reason":  map[string]any{"type": "string"},
+	},
+}
 
 const instructions = `You review whether an application's own code uses the part of a dependency that a security advisory affects.
 You are given the advisory, the package, the code check's search evidence (imports and calls, with a few lines around each) and its draft verdict.
@@ -61,43 +51,20 @@ func (a *Assistant) Refine(ctx context.Context, f Finding, draft Result, code *C
 	prompt := fmt.Sprintf("Advisory %s: %s\nPackage: %s\nAffected functions named by the advisory: %s\n\nSearch evidence:\n%s\nDraft verdict: %s. %s",
 		f.PrimaryID, f.Summary, strings.Join(places, "; "), orNone(f.Symbols), ev.String(), draft.Verdict, draft.Reason)
 
-	resp, err := a.Client.Beta.Messages.New(ctx, anthropic.BetaMessageNewParams{
-		Model:     anthropic.Model(a.Model),
-		MaxTokens: 4000,
-		System:    []anthropic.BetaTextBlockParam{{Text: instructions}},
-		Messages:  []anthropic.BetaMessageParam{anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock(prompt))},
-		OutputConfig: anthropic.BetaOutputConfigParam{
-			Effort: anthropic.BetaOutputConfigEffortLow,
-			Format: anthropic.BetaJSONOutputFormatParam{Schema: verdictSchema},
-		},
-		// A policy decline is re-served by a fallback model inside the same call.
-		Fallbacks: anthropic.BetaFallbacksParamOfDefault(),
-		Betas:     []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01},
-	})
+	answer, err := a.Provider.Draft(ctx, a.Model, instructions, prompt, verdictSchema)
 	if err != nil {
-		var apierr *anthropic.Error
-		if errors.As(err, &apierr) {
-			err = fmt.Errorf("the assistant answered %d (%s)", apierr.StatusCode, apierr.Type())
-		} else {
-			err = fmt.Errorf("the assistant could not be reached: %w", err)
-		}
+		err = fmt.Errorf("the assistant: %w", err)
 		return keep(draft, err), err
 	}
-	if resp.StopReason == anthropic.BetaStopReasonRefusal {
+	if answer.Refused {
 		err := errors.New("the assistant declined to answer")
 		return keep(draft, err), err
-	}
-	var text strings.Builder
-	for _, block := range resp.Content {
-		if t, ok := block.AsAny().(anthropic.BetaTextBlock); ok {
-			text.WriteString(t.Text)
-		}
 	}
 	var out struct {
 		Verdict string `json:"verdict"`
 		Reason  string `json:"reason"`
 	}
-	if err := json.Unmarshal([]byte(text.String()), &out); err != nil || (out.Verdict != Used && out.Verdict != NotUsed && out.Verdict != Unclear) {
+	if err := json.Unmarshal([]byte(answer.Text), &out); err != nil || (out.Verdict != Used && out.Verdict != NotUsed && out.Verdict != Unclear) {
 		err := errors.New("the assistant's answer was not a verdict")
 		return keep(draft, err), err
 	}
@@ -108,7 +75,7 @@ func (a *Assistant) Refine(ctx context.Context, f Finding, draft Result, code *C
 		out.Reason += " (The search found the package in use, so this stays unclear, not unused.)"
 	}
 	r := draft
-	r.Verdict, r.Reason, r.Assisted, r.Model = out.Verdict, strings.TrimSpace(out.Reason), true, string(resp.Model)
+	r.Verdict, r.Reason, r.Assisted, r.Model = out.Verdict, strings.TrimSpace(out.Reason), true, answer.Model
 	return r, nil
 }
 

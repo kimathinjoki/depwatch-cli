@@ -169,7 +169,7 @@ run incomplete.`,
 	}
 	root.PersistentFlags().Bool("json", false, "write all output as JSON")
 	root.SetFlagErrorFunc(func(c *cobra.Command, err error) error { return err })
-	root.AddCommand(newVersion(env), newInventory(env), newGate(env), newScan(env), newLogin(env), newMirror(env), newMatch(env), newWanted(env), newCheck(env), newFix(env), newDeployed(env), newReference(env))
+	root.AddCommand(newVersion(env), newInventory(env), newGate(env), newScan(env), newLogin(env), newMirror(env), newMatch(env), newWanted(env), newCheck(env), newModels(env), newFix(env), newDeployed(env), newReference(env))
 	root.CompletionOptions.DisableDefaultCmd = true
 	return root
 }

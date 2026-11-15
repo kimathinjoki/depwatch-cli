@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anthropics/anthropic-sdk-go/v2/option"
-
 	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
 )
 
@@ -128,7 +126,7 @@ func TestAssistant(t *testing.T) {
 	defer srv.Close()
 	c := load(t, map[string]string{"src/a.js": "x\nconst axios = require('axios')\n"})
 	f := npm("axios", "direct")
-	a := NewAssistant("", option.WithBaseURL(srv.URL), option.WithAPIKey("test"), option.WithMaxRetries(0))
+	a := NewAssistant(newAnthropic("test", srv.URL), DefaultModel)
 	r, err := a.Refine(context.Background(), f, c.Check(f), c)
 	if err != nil || r.Verdict != Used || !r.Assisted || r.Model != "claude-opus-5-5" || !strings.Contains(r.Reason, "every request") {
 		t.Fatalf("%+v %v", r, err)
@@ -154,7 +152,7 @@ func TestAssistantFailuresKeepTheSearch(t *testing.T) {
 		fakeClaude(t, 200, message("not json", "end_turn"), nil),
 		fakeClaude(t, 200, message(`{"verdict":"not_used","reason":"x"}`, "end_turn"), nil),
 	} {
-		a := NewAssistant("", option.WithBaseURL(srv.URL), option.WithAPIKey("test"), option.WithMaxRetries(0))
+		a := NewAssistant(newAnthropic("test", srv.URL), DefaultModel)
 		r, _ := a.Refine(context.Background(), f, draft, c)
 		srv.Close()
 		if r.Verdict == NotUsed {
