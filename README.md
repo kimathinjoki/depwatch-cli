@@ -18,7 +18,19 @@ is shown, and makes the run incomplete, with its own exit code.
 ## Install
 
 Releases are one static binary per platform (Linux, macOS and Windows, on amd64 and arm64), with a
-checksums file. Until releases are published, build it from source with Go 1.27 or later:
+checksums file, on the [releases page](https://github.com/kimathinjoki/depwatch-cli/releases).
+Download the archive for your platform and `checksums.txt`, check it and put `depwatch` on your path:
+
+```sh
+v=0.1.0
+curl -fsSLO "https://github.com/kimathinjoki/depwatch-cli/releases/download/v$v/depwatch_${v}_linux_amd64.tar.gz"
+curl -fsSLO "https://github.com/kimathinjoki/depwatch-cli/releases/download/v$v/checksums.txt"
+sha256sum --check --ignore-missing checksums.txt
+tar -xzf "depwatch_${v}_linux_amd64.tar.gz" depwatch
+./depwatch version
+```
+
+Or build it from source with Go 1.27 or later:
 
 ```sh
 git clone https://github.com/kimathinjoki/depwatch-cli
@@ -334,6 +346,10 @@ make lint       # gofmt, go vet, staticcheck
 make live       # the corpus against the real sources (network), reporting any drift
 make snapshot   # six release binaries and checksums in dist/, checked; nothing is published
 ```
+
+To release, tag `main` (`git tag v0.1.0 && git push origin v0.1.0`). The release workflow runs the
+suite, then publishes the binaries and `checksums.txt` as a GitHub release. Copy that `checksums.txt`
+into `depwatch-action` as `checksums/<version>.txt` so the Action can install it.
 
 No test reaches the network by default. Source answers are recorded under `testdata/`; the `live`
 build tag re-runs the corpus against the real sources. To refresh the recordings after a reviewed

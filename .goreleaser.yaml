@@ -1,5 +1,6 @@
 # Builds one static binary per platform with checksums and version stamping.
-# `make snapshot` runs it locally; nothing is published from here.
+# `make snapshot` runs it locally and publishes nothing; a `v*` tag runs .github/workflows/release.yml,
+# which publishes a GitHub release.
 version: 2
 
 project_name: depwatch
@@ -42,4 +43,8 @@ changelog:
   disable: true
 
 release:
-  disable: true
+  github:
+    owner: kimathinjoki
+    name: depwatch-cli
+  # A repeated tag must not replace binaries whose checksums the Action already carries.
+  mode: keep-existing
