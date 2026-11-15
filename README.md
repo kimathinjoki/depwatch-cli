@@ -303,7 +303,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the image
         run: docker build -t app:ci . && docker save app:ci -o app.tar
-      - uses: kimathinjoki/watchdep-action@73a15c2faba925284e976f589e3ec2ae871b1d07   # v1, pinned by commit SHA
+      - uses: kimathinjoki/watchdep-action@18cbad45072956cbc9c9442b8dffe9e315934499   # v1, pinned by commit SHA
         with:
           version: 0.1.0
           command: gate
