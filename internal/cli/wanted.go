@@ -11,24 +11,24 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/config"
-	"github.com/kimathinjoki/depwatch-cli/internal/discover"
-	"github.com/kimathinjoki/depwatch-cli/internal/extract"
-	"github.com/kimathinjoki/depwatch-cli/internal/image"
+	"github.com/kimathinjoki/watchdep-cli/internal/config"
+	"github.com/kimathinjoki/watchdep-cli/internal/discover"
+	"github.com/kimathinjoki/watchdep-cli/internal/extract"
+	"github.com/kimathinjoki/watchdep-cli/internal/image"
 )
 
 func newWanted(env *Env) *cobra.Command {
 	var configPath string
 	c := &cobra.Command{
-		Use:   "wanted [--config depwatch.yml] < listing",
-		Short: "Say which files of a repository listing depwatch would read",
+		Use:   "wanted [--config watchdep.yml] < listing",
+		Short: "Say which files of a repository listing watchdep would read",
 		Long: `Read a repository's file listing on standard input, one file per line as "<path> <size>" (size
-optional), and answer which of those files depwatch inventory would read: dependency files, the
-manifests beside lockfiles, version files, Dockerfiles, depwatch.yml and the files of unsupported
+optional), and answer which of those files watchdep inventory would read: dependency files, the
+manifests beside lockfiles, version files, Dockerfiles, watchdep.yml and the files of unsupported
 ecosystems. Never a source file.
 
-The depwatch server uses it to fetch exactly the files the CLI reads, so the GitHub route and the CLI
-route give the same inventory. With --config, folders the given depwatch.yml ignores are left out.`,
+The watchdep server uses it to fetch exactly the files the CLI reads, so the GitHub route and the CLI
+route give the same inventory. With --config, folders the given watchdep.yml ignores are left out.`,
 		Args: cobra.NoArgs,
 		RunE: func(c *cobra.Command, _ []string) error {
 			var ignore []string
@@ -83,6 +83,6 @@ route give the same inventory. With --config, folders the given depwatch.yml ign
 			return nil
 		},
 	}
-	c.Flags().StringVar(&configPath, "config", "", "a depwatch.yml whose ignore list applies")
+	c.Flags().StringVar(&configPath, "config", "", "a watchdep.yml whose ignore list applies")
 	return c
 }

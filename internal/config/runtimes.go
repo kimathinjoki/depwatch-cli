@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
 )
 
 // VersionFiles are the files that state a runtime version, by base name.
@@ -18,7 +18,7 @@ var VersionFiles = map[string]bool{
 	".tool-versions":  true,
 }
 
-// toolNames maps .tool-versions (asdf, mise) names to depwatch's runtime names.
+// toolNames maps .tool-versions (asdf, mise) names to watchdep's runtime names.
 var toolNames = map[string]string{
 	"nodejs": "node", "node": "node", "ruby": "ruby", "python": "python", "golang": "go", "go": "go",
 	"java": "java", "php": "php", "rust": "rust", "elixir": "elixir", "erlang": "erlang",
@@ -80,7 +80,7 @@ func ReadVersionFile(file string, content []byte) []inventory.Runtime {
 	return nil
 }
 
-// FromConfig lists the runtimes, databases and hosting runtimes depwatch.yml states.
+// FromConfig lists the runtimes, databases and hosting runtimes watchdep.yml states.
 func (c *Config) FromConfig() []inventory.Runtime {
 	var out []inventory.Runtime
 	names := make([]string, 0, len(c.Runtimes))
@@ -108,7 +108,7 @@ func (c *Config) FromConfig() []inventory.Runtime {
 	return out
 }
 
-// Conflicts lists every runtime whose sources state different versions: depwatch.yml against a
+// Conflicts lists every runtime whose sources state different versions: watchdep.yml against a
 // version file, or two version files in one folder. Folders of a monorepo may run different
 // versions, so files in different folders are not compared with each other. Both stay listed in
 // the inventory; the conflict is reported so a person decides which one production runs.

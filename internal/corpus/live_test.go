@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 var update = flag.Bool("update", false, "write fresh recordings and expected results")

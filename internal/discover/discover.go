@@ -33,12 +33,12 @@ type File struct {
 // Reasons a symbolic link is not followed.
 const (
 	LinkOutsideFile   = "a symbolic link to a file outside the project folder; not followed"
-	LinkOutsideFolder = "a symbolic link to a folder outside the project folder; not followed (list it under ignore in depwatch.yml if it holds no dependencies)"
+	LinkOutsideFolder = "a symbolic link to a folder outside the project folder; not followed (list it under ignore in watchdep.yml if it holds no dependencies)"
 	LinkBroken        = "a symbolic link whose target does not exist"
 )
 
 // Walk lists every regular file under fsys, in path order, skipping SkippedDirs and the ignored
-// folders (slash paths relative to the root, as written under ignore in depwatch.yml). Symbolic
+// folders (slash paths relative to the root, as written under ignore in watchdep.yml). Symbolic
 // links are not followed.
 func Walk(fsys fs.FS, ignore []string) ([]File, error) {
 	return walk(fsys, "", ignore)

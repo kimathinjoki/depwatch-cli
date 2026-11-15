@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/osv-scalibr/semantic"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/collect"
+	"github.com/kimathinjoki/watchdep-cli/internal/collect"
 )
 
 // Snapshot keeps the regular files of a folder (not its subfolders), so a fixer that did not reach the

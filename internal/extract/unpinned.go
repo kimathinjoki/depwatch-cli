@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/discover"
-	"github.com/kimathinjoki/depwatch-cli/internal/gemfile"
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/discover"
+	"github.com/kimathinjoki/watchdep-cli/internal/gemfile"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
 )
 
 // manifestRule says which lockfiles pin a manifest. A manifest with none of them in its folder or a

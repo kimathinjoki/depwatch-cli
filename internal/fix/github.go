@@ -12,14 +12,14 @@ import (
 	"time"
 )
 
-// Git runs git in the repository, as depwatch when no identity is configured.
+// Git runs git in the repository, as watchdep when no identity is configured.
 type Git struct {
 	Dir string
 }
 
 func (g Git) run(ctx context.Context, args ...string) (string, error) {
-	full := append([]string{"-c", "user.name=" + identity(ctx, g.Dir, "user.name", "depwatch"),
-		"-c", "user.email=" + identity(ctx, g.Dir, "user.email", "depwatch@users.noreply.github.com")}, args...)
+	full := append([]string{"-c", "user.name=" + identity(ctx, g.Dir, "user.name", "watchdep"),
+		"-c", "user.email=" + identity(ctx, g.Dir, "user.email", "watchdep@users.noreply.github.com")}, args...)
 	cmd := exec.CommandContext(ctx, "git", full...)
 	cmd.Dir = g.Dir
 	out, err := cmd.CombinedOutput()
@@ -68,7 +68,7 @@ func (g Git) Current(ctx context.Context) (string, error) {
 	return g.run(ctx, "rev-parse", "--abbrev-ref", "HEAD")
 }
 
-// GitHub opens and reads pull requests with the repository's own token. It has no merge call: depwatch
+// GitHub opens and reads pull requests with the repository's own token. It has no merge call: watchdep
 // never merges.
 type GitHub struct {
 	API   string // https://api.github.com
@@ -77,7 +77,7 @@ type GitHub struct {
 	HTTP  *http.Client
 }
 
-// PullRequest is the part of GitHub's pull request depwatch reads.
+// PullRequest is the part of GitHub's pull request watchdep reads.
 type PullRequest struct {
 	Number   int    `json:"number"`
 	URL      string `json:"html_url"`
@@ -91,8 +91,8 @@ type PullRequest struct {
 	} `json:"base"`
 }
 
-// DepwatchState says open, merged or closed.
-func (p PullRequest) DepwatchState() string {
+// WatchdepState says open, merged or closed.
+func (p PullRequest) WatchdepState() string {
 	switch {
 	case p.MergedAt != "":
 		return "merged"

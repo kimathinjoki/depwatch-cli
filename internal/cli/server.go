@@ -10,26 +10,26 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/client"
-	"github.com/kimathinjoki/depwatch-cli/internal/collect"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/client"
+	"github.com/kimathinjoki/watchdep-cli/internal/collect"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 func newLogin(env *Env) *cobra.Command {
 	var server, token string
 	c := &cobra.Command{
 		Use:   "login --server <url> --token <token>",
-		Short: "Store a part's token for a depwatch server",
-		Long: `Store the token a depwatch server created for one part, so depwatch scan can send that part's
+		Short: "Store a part's token for a watchdep server",
+		Long: `Store the token a watchdep server created for one part, so watchdep scan can send that part's
 inventory. The token is kept in the user's config folder, readable only by the user. In CI, set
-DEPWATCH_SERVER and DEPWATCH_TOKEN instead.`,
+WATCHDEP_SERVER and WATCHDEP_TOKEN instead.`,
 		Args: cobra.NoArgs,
 		RunE: func(c *cobra.Command, _ []string) error {
 			if server == "" || token == "" {
 				return &usageError{msg: "login needs --server and --token"}
 			}
 			if u, err := url.Parse(server); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
-				return &usageError{msg: "--server must be a URL such as https://depwatch.example.com"}
+				return &usageError{msg: "--server must be a URL such as https://watchdep.example.com"}
 			}
 			creds, err := client.LoadCredentials()
 			if err != nil {
@@ -49,7 +49,7 @@ DEPWATCH_SERVER and DEPWATCH_TOKEN instead.`,
 			return nil
 		},
 	}
-	c.Flags().StringVar(&server, "server", "", "the depwatch server's address")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address")
 	c.Flags().StringVar(&token, "token", "", "the part's token, as the server showed it")
 	return c
 }
@@ -59,12 +59,12 @@ func newScan(env *Env) *cobra.Command {
 	var server, token string
 	c := &cobra.Command{
 		Use:   "scan [path]",
-		Short: "Send the project's inventory to a depwatch server",
-		Long: `Take the inventory (as depwatch gate does, pulling base images) and send it to a depwatch server
+		Short: "Send the project's inventory to a watchdep server",
+		Long: `Take the inventory (as watchdep gate does, pulling base images) and send it to a watchdep server
 with the part's token. Only the inventory leaves the machine; the code never does.
 
-The server and token come from --server and --token, else DEPWATCH_SERVER and DEPWATCH_TOKEN, else
-the last depwatch login.
+The server and token come from --server and --token, else WATCHDEP_SERVER and WATCHDEP_TOKEN, else
+the last watchdep login.
 
 Exit codes: 0 sent; 2 the server did not answer, or did not look (the plan's scans for today are
 used), with its reason; 3 no token, a refused token or a rejected inventory.`,
@@ -133,17 +133,17 @@ used), with its reason; 3 no token, a refused token or a rejected inventory.`,
 		},
 	}
 	addTakeFlags(c, &tf)
-	c.Flags().StringVar(&server, "server", "", "the depwatch server's address (default: DEPWATCH_SERVER, else the last login)")
-	c.Flags().StringVar(&token, "token", "", "the part's token (default: DEPWATCH_TOKEN, else the last login)")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the last login)")
+	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the last login)")
 	return c
 }
 
 func resolveServer(env *Env, server, token string) (string, string, error) {
 	if server == "" {
-		server = env.Getenv("DEPWATCH_SERVER")
+		server = env.Getenv("WATCHDEP_SERVER")
 	}
 	if token == "" {
-		token = env.Getenv("DEPWATCH_TOKEN")
+		token = env.Getenv("WATCHDEP_TOKEN")
 	}
 	if server == "" || token == "" {
 		creds, err := client.LoadCredentials()
@@ -158,7 +158,7 @@ func resolveServer(env *Env, server, token string) (string, string, error) {
 		}
 	}
 	if server == "" || token == "" {
-		return "", "", &usageError{msg: "no server or token: run depwatch login, or set DEPWATCH_SERVER and DEPWATCH_TOKEN"}
+		return "", "", &usageError{msg: "no server or token: run watchdep login, or set WATCHDEP_SERVER and WATCHDEP_TOKEN"}
 	}
 	return server, token, nil
 }

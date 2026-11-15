@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
+	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
 )
 
 func dropTakenAt(t *testing.T, raw []byte) map[string]any {
@@ -41,15 +41,15 @@ func TestScanPostsTheInventory(t *testing.T) {
 	dir := testutil.CopyDir(t, "../../testdata/fixtures/monorepo")
 	var out strings.Builder
 	code := Run([]string{"scan", "--server", srv.URL, dir}, Env{Stdout: &out, Stderr: &out, Getenv: func(k string) string {
-		if k == "DEPWATCH_TOKEN" {
-			return "dwp_secret"
+		if k == "WATCHDEP_TOKEN" {
+			return "wdp_secret"
 		}
 		return ""
 	}})
 	if code != 0 {
 		t.Fatalf("exit %d: %s", code, out.String())
 	}
-	if gotAuth != "Bearer dwp_secret" {
+	if gotAuth != "Bearer wdp_secret" {
 		t.Fatalf("auth %q", gotAuth)
 	}
 	_, inv, _ := run(t, nil, "inventory", "--json", dir)
@@ -74,7 +74,7 @@ func TestScanErrors(t *testing.T) {
 	dir := testutil.Tree(t, map[string]string{"go.mod": "module x\n\ngo 1.22\n"})
 	env := func() Env {
 		return Env{Stdout: io.Discard, Stderr: io.Discard, Getenv: func(k string) string {
-			if k == "DEPWATCH_TOKEN" {
+			if k == "WATCHDEP_TOKEN" {
 				return "t"
 			}
 			return ""
@@ -89,7 +89,7 @@ func TestScanErrors(t *testing.T) {
 	if code := Run([]string{"scan", "--server", "http://127.0.0.1:1", dir}, env()); code != ExitIncomplete {
 		t.Fatalf("unreachable: exit %d", code)
 	}
-	t.Setenv("DEPWATCH_CREDENTIALS", filepath.Join(t.TempDir(), "none.json"))
+	t.Setenv("WATCHDEP_CREDENTIALS", filepath.Join(t.TempDir(), "none.json"))
 	noTok := Env{Stdout: io.Discard, Stderr: io.Discard}
 	if code := Run([]string{"scan", dir}, noTok); code != ExitUsage {
 		t.Fatalf("no token: exit %d", code)
@@ -108,7 +108,7 @@ func TestScanNotLookedExitsIncomplete(t *testing.T) {
 	dir := testutil.Tree(t, map[string]string{"go.mod": "module x\n\ngo 1.22\n"})
 	var errOut strings.Builder
 	code := Run([]string{"scan", "--server", srv.URL, dir}, Env{Stdout: io.Discard, Stderr: &errOut, Getenv: func(k string) string {
-		if k == "DEPWATCH_TOKEN" {
+		if k == "WATCHDEP_TOKEN" {
 			return "t"
 		}
 		return ""
@@ -123,9 +123,9 @@ func TestScanNotLookedExitsIncomplete(t *testing.T) {
 
 // The stored credentials file is created with owner-only permissions, and scan uses it.
 func TestLoginStoresPrivately(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "depwatch", "credentials.json")
-	t.Setenv("DEPWATCH_CREDENTIALS", p)
-	if code, out, _ := run(t, nil, "login", "--server", "https://dw.example.test/", "--token", "dwp_abc"); code != 0 {
+	p := filepath.Join(t.TempDir(), "watchdep", "credentials.json")
+	t.Setenv("WATCHDEP_CREDENTIALS", p)
+	if code, out, _ := run(t, nil, "login", "--server", "https://dw.example.test/", "--token", "wdp_abc"); code != 0 {
 		t.Fatalf("exit %d %s", code, out)
 	}
 	st, err := os.Stat(p)
@@ -136,11 +136,11 @@ func TestLoginStoresPrivately(t *testing.T) {
 		t.Fatalf("permissions %v, want 0600", st.Mode().Perm())
 	}
 	raw, _ := os.ReadFile(p)
-	if !strings.Contains(string(raw), `"https://dw.example.test": "dwp_abc"`) {
+	if !strings.Contains(string(raw), `"https://dw.example.test": "wdp_abc"`) {
 		t.Fatalf("%s", raw)
 	}
 	srv, tok, err := resolveServer(&Env{Getenv: func(string) string { return "" }}, "", "")
-	if err != nil || srv != "https://dw.example.test" || tok != "dwp_abc" {
+	if err != nil || srv != "https://dw.example.test" || tok != "wdp_abc" {
 		t.Fatalf("%s %s %v", srv, tok, err)
 	}
 	if code, _, _ := run(t, nil, "login", "--server", "not a url", "--token", "x"); code != ExitUsage {

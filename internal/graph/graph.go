@@ -1,7 +1,7 @@
 // Package graph reads the dependency edges each lockfile records, and from them every package's
 // shortest paths from the part's root, whether it is direct, and whether it ships to production.
 //
-// OSV-SCALIBR reports packages but no edges, so depwatch reads edges from the lockfile itself.
+// OSV-SCALIBR reports packages but no edges, so watchdep reads edges from the lockfile itself.
 // Where a file records no edges, nothing is guessed: the package's path reads "path not recorded".
 package graph
 

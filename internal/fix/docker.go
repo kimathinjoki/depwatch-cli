@@ -13,8 +13,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/osv-scalibr/semantic"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/discover"
-	"github.com/kimathinjoki/depwatch-cli/internal/image"
+	"github.com/kimathinjoki/watchdep-cli/internal/discover"
+	"github.com/kimathinjoki/watchdep-cli/internal/image"
 )
 
 // DigestResolver gives the current digest of an image tag. Tests replace it.

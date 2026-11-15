@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/image"
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
+	"github.com/kimathinjoki/watchdep-cli/internal/image"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
 )
 
 type call struct {
@@ -116,7 +116,7 @@ func TestNotReachedIsRestored(t *testing.T) {
 }
 
 func TestMissingPackageManager(t *testing.T) {
-	err := ExecRunner(context.Background(), t.TempDir(), "depwatch-no-such-pm")
+	err := ExecRunner(context.Background(), t.TempDir(), "watchdep-no-such-pm")
 	if err == nil || !strings.Contains(err.Error(), "is not installed here") {
 		t.Fatalf("%v", err)
 	}
@@ -149,7 +149,7 @@ func TestBody(t *testing.T) {
 			t.Errorf("body lacks %q:\n%s", want, body)
 		}
 	}
-	if BranchName(item, "API") != "depwatch/cve-2023-31047-api" {
+	if BranchName(item, "API") != "watchdep/cve-2023-31047-api" {
 		t.Fatal(BranchName(item, "API"))
 	}
 }
@@ -203,7 +203,7 @@ func TestVerifyFailsWhenNotFound(t *testing.T) {
 
 // Package managers get a minimal environment: no token of the job reaches the code they may run.
 func TestMinimalEnv(t *testing.T) {
-	env := MinimalEnv([]string{"PATH=/bin", "HOME=/h", "GITHUB_TOKEN=ghs", "DEPWATCH_TOKEN=dwp", "ACTIONS_RUNTIME_TOKEN=x",
+	env := MinimalEnv([]string{"PATH=/bin", "HOME=/h", "GITHUB_TOKEN=ghs", "WATCHDEP_TOKEN=dwp", "ACTIONS_RUNTIME_TOKEN=x",
 		"NODE_AUTH_TOKEN=n", "NPM_CONFIG_REGISTRY=https://r", "NPM_CONFIG__AUTH=a", "AWS_SECRET_ACCESS_KEY=s", "GOPROXY=direct", "CI=true"})
 	got := strings.Join(env, " ")
 	for _, want := range []string{"PATH=/bin", "HOME=/h", "NPM_CONFIG_REGISTRY=https://r", "GOPROXY=direct", "YARN_ENABLE_SCRIPTS=false"} {

@@ -51,7 +51,7 @@ func TestChooseProviderAndModel(t *testing.T) {
 	if m, _ := ChooseModel("google", ""); m != "gemini-4-carbon" {
 		t.Fatal(m)
 	}
-	if _, err := ChooseModel("openai", ""); err == nil || !strings.Contains(err.Error(), "depwatch models --provider openai") {
+	if _, err := ChooseModel("openai", ""); err == nil || !strings.Contains(err.Error(), "watchdep models --provider openai") {
 		t.Fatalf("OpenAI has no default model: %v", err)
 	}
 }

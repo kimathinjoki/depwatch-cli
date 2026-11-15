@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kimathinjoki/depwatch-cli/schema/depwatch.schema.json",
-  "title": "depwatch.yml",
+  "$id": "https://github.com/kimathinjoki/watchdep-cli/schema/watchdep.schema.json",
+  "title": "watchdep.yml",
   "description": "What no lockfile states about a part. Every key is optional. Version 1.",
   "type": [
     "object",

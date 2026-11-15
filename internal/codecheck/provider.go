@@ -64,7 +64,7 @@ func ChooseModel(provider, flag string) (string, error) {
 	if m, ok := DefaultModels[provider]; ok {
 		return m, nil
 	}
-	return "", fmt.Errorf("%s has no default model: choose one with --model (depwatch models --provider %s lists them)", provider, provider)
+	return "", fmt.Errorf("%s has no default model: choose one with --model (watchdep models --provider %s lists them)", provider, provider)
 }
 
 // NewProvider builds the provider with its key from getenv. baseURL points it elsewhere (tests).

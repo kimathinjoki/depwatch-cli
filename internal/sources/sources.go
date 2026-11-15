@@ -1,4 +1,4 @@
-// Package sources looks up advisories without a depwatch server: OSV for affected versions, CISA
+// Package sources looks up advisories without a watchdep server: OSV for affected versions, CISA
 // KEV for exploited now, and EPSS for the probability of exploitation.
 //
 // Every source sits behind an interface. Tests use the recorded implementation, which answers from
@@ -22,7 +22,7 @@ type Query struct {
 // Key identifies a query in a recording and a cache.
 func (q Query) Key() string { return q.Ecosystem + "|" + q.Name + "|" + q.Version }
 
-// Vuln is the part of an OSV entry depwatch reads.
+// Vuln is the part of an OSV entry watchdep reads.
 type Vuln struct {
 	ID               string         `json:"id"`
 	Aliases          []string       `json:"aliases,omitempty"`

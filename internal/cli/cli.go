@@ -1,4 +1,4 @@
-// Package cli is the depwatch command line: its commands, flags, output and exit codes.
+// Package cli is the watchdep command line: its commands, flags, output and exit codes.
 package cli
 
 import (
@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/config"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/config"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 // Exit codes.
@@ -34,13 +34,13 @@ type Env struct {
 	// Sources builds the advisory sources; nil means the live ones.
 	Sources func() (sources.Set, error)
 	Getenv  func(string) string
-	// HTTP, when set, is used for calls to a depwatch server and to OSV's exports.
+	// HTTP, when set, is used for calls to a watchdep server and to OSV's exports.
 	HTTP *http.Client
 	// Stdin feeds commands that read a listing.
 	Stdin io.Reader
 }
 
-// usageError is a problem with the command line or depwatch.yml.
+// usageError is a problem with the command line or watchdep.yml.
 type usageError struct{ msg string }
 
 func (e *usageError) Error() string { return e.msg }
@@ -127,7 +127,7 @@ func writeError(env Env, jsonOut bool, msg string) {
 		_ = enc.Encode(map[string]string{"error": msg})
 		return
 	}
-	fmt.Fprintln(env.Stderr, "depwatch: "+msg)
+	fmt.Fprintln(env.Stderr, "watchdep: "+msg)
 }
 
 func hasJSONFlag(args []string) bool {
@@ -155,13 +155,13 @@ func isCobraUsage(err error) bool {
 
 func newRoot(env *Env) *cobra.Command {
 	root := &cobra.Command{
-		Use:   "depwatch",
+		Use:   "watchdep",
 		Short: "Watch every layer of a project's dependencies for known vulnerabilities and compromised releases",
-		Long: `depwatch takes the inventory of a project (every package at every depth, runtimes, and the
+		Long: `watchdep takes the inventory of a project (every package at every depth, runtimes, and the
 operating system packages of its images) and checks it for known vulnerabilities and compromised
 releases.
 
-Nothing reads as clean when depwatch did not look: a file it could not read, an ecosystem it does
+Nothing reads as clean when watchdep did not look: a file it could not read, an ecosystem it does
 not support, an image it could not pull or a source that did not answer is shown, and makes the
 run incomplete.`,
 		SilenceUsage:  true,
@@ -195,7 +195,7 @@ func newVersion(env *Env) *cobra.Command {
 			if jsonFlag(c) {
 				return writeJSON(env.Stdout, map[string]string{"version": version.Version, "commit": version.Commit, "date": version.Date})
 			}
-			fmt.Fprintf(env.Stdout, "depwatch %s (commit %s, built %s)\n", version.Version, version.Commit, version.Date)
+			fmt.Fprintf(env.Stdout, "watchdep %s (commit %s, built %s)\n", version.Version, version.Commit, version.Date)
 			return nil
 		},
 	}

@@ -79,7 +79,7 @@ func TestFixOpensOnePullRequestAndNeverMerges(t *testing.T) {
 	defer srv.Close()
 
 	env := Env{Stdout: io.Discard, Stderr: io.Discard, Getenv: func(k string) string {
-		return map[string]string{"DEPWATCH_SERVER": srv.URL, "DEPWATCH_TOKEN": "t", "GITHUB_TOKEN": "ghs", "GITHUB_REPOSITORY": "o/r", "GITHUB_API_URL": gh.URL}[k]
+		return map[string]string{"WATCHDEP_SERVER": srv.URL, "WATCHDEP_TOKEN": "t", "GITHUB_TOKEN": "ghs", "GITHUB_REPOSITORY": "o/r", "GITHUB_API_URL": gh.URL}[k]
 	}}
 	var out strings.Builder
 	env.Stdout = &out
@@ -89,7 +89,7 @@ func TestFixOpensOnePullRequestAndNeverMerges(t *testing.T) {
 	if len(reported) != 1 || reported[0]["number"] != float64(5) || reported[0]["state"] != "open" || reported[0]["strategy"] != "direct" {
 		t.Fatalf("%v", reported)
 	}
-	if got := git(t, remote, "show", "depwatch/cve-2023-31047-api:requirements.txt"); got != "django==4.2.2" {
+	if got := git(t, remote, "show", "watchdep/cve-2023-31047-api:requirements.txt"); got != "django==4.2.2" {
 		t.Fatalf("pushed %q", got)
 	}
 	if git(t, repo, "rev-parse", "--abbrev-ref", "HEAD") != "main" {
@@ -105,7 +105,7 @@ func TestFixOpensOnePullRequestAndNeverMerges(t *testing.T) {
 			posts++
 		}
 		if strings.Contains(c, "/merge") {
-			t.Fatalf("depwatch called merge: %v", ghCalls)
+			t.Fatalf("watchdep called merge: %v", ghCalls)
 		}
 	}
 	if posts != 1 {
@@ -123,7 +123,7 @@ func TestDeployed(t *testing.T) {
 	defer srv.Close()
 	var out strings.Builder
 	code := Run([]string{"deployed", "--sha", "abc1234def"}, Env{Stdout: &out, Stderr: &out, Getenv: func(k string) string {
-		return map[string]string{"DEPWATCH_SERVER": srv.URL, "DEPWATCH_TOKEN": "t"}[k]
+		return map[string]string{"WATCHDEP_SERVER": srv.URL, "WATCHDEP_TOKEN": "t"}[k]
 	}})
 	if code != 0 || got["commit"] != "abc1234def" || !strings.Contains(out.String(), "No inventory") {
 		t.Fatalf("%d %v %s", code, got, out.String())
@@ -149,7 +149,7 @@ func TestFixRefusesSourceFileOutsideRepository(t *testing.T) {
 	defer srv.Close()
 	var out strings.Builder
 	env := Env{Stdout: &out, Stderr: io.Discard, Getenv: func(k string) string {
-		return map[string]string{"DEPWATCH_SERVER": srv.URL, "DEPWATCH_TOKEN": "t"}[k]
+		return map[string]string{"WATCHDEP_SERVER": srv.URL, "WATCHDEP_TOKEN": "t"}[k]
 	}}
 	if code := Run([]string{"fix", "--dry-run", repo}, env); code != ExitIncomplete || !strings.Contains(out.String(), "refused") {
 		t.Fatalf("exit %d: %s", code, out.String())

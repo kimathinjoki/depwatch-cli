@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
 )
 
 // Matched is one package (or OS package) of an inventory with the advisories affecting it.
@@ -30,7 +30,7 @@ type Fix struct {
 	Lowest    string `json:"lowest,omitempty"`
 }
 
-// Facts are what depwatch reads from one advisory, computed once here so the server needs no CVSS or
+// Facts are what watchdep reads from one advisory, computed once here so the server needs no CVSS or
 // version rules of its own.
 type Facts struct {
 	CVSS        *float64 `json:"cvss"`
@@ -41,7 +41,7 @@ type Facts struct {
 	Withdrawn   bool     `json:"withdrawn"`
 }
 
-// LookupResult is what `depwatch match` answers: which advisories affect which package, the advisories
+// LookupResult is what `watchdep match` answers: which advisories affect which package, the advisories
 // themselves, and everything that was not checked. It does no ranking: the server ranks.
 type LookupResult struct {
 	SchemaVersion string                   `json:"schema_version"`
@@ -72,7 +72,7 @@ func Lookup(ctx context.Context, inv *inventory.Inventory, osv sources.OSV, work
 	subjects, unknownEco, ranged := subjectsOf(inv)
 	for _, eco := range sortedKeys(unknownEco) {
 		res.NotChecked = append(res.NotChecked, NotChecked{What: pluralPackages(unknownEco[eco], eco),
-			Why: "no advisory source depwatch reads covers this ecosystem", Incomplete: true, Ecosystem: eco})
+			Why: "no advisory source watchdep reads covers this ecosystem", Incomplete: true, Ecosystem: eco})
 	}
 	if ranged > 0 {
 		res.NotChecked = append(res.NotChecked, NotChecked{What: pluralPackages(ranged, "range-only"),

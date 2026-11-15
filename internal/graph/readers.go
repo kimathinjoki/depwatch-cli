@@ -12,7 +12,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v3"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/gemfile"
+	"github.com/kimathinjoki/watchdep-cli/internal/gemfile"
 )
 
 // Sibling reads a file beside the lockfile by name; ok is false when there is none.
@@ -40,13 +40,13 @@ var readers = map[string]reader{
 	"gradle.lockfile":     readGradleLock,
 }
 
-// Supported reports whether depwatch reads anything about edges or relations from this file.
+// Supported reports whether watchdep reads anything about edges or relations from this file.
 func Supported(file string) bool {
 	_, ok := readers[path.Base(file)]
 	return ok
 }
 
-// Read reads the edges a lockfile records. It returns nil and no error for files depwatch reads no
+// Read reads the edges a lockfile records. It returns nil and no error for files watchdep reads no
 // edges from; their packages' paths read "path not recorded".
 func Read(file string, lock []byte, sibling Sibling) (*Graph, error) {
 	r, ok := readers[path.Base(file)]

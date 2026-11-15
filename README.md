@@ -1,53 +1,53 @@
-# depwatch-cli
+# watchdep-cli
 
-`depwatch` is a command line tool that takes the inventory of a project (every package at every
+`watchdep` is a command line tool that takes the inventory of a project (every package at every
 depth, with the path that brought it in and whether it ships to production, the runtimes, and the
 operating system packages of its images) and checks it for known vulnerabilities and compromised
 releases. It runs where the code already is, on a developer's machine or in CI, and needs no
-depwatch server.
+watchdep server.
 
-It is the open part of depwatch. On its own it fails a CI build on what is exploited now, with no
-account. With the depwatch service, `scan` sends the inventory (never the code) so findings are kept
+It is the open part of watchdep. On its own it fails a CI build on what is exploited now, with no
+account. With the watchdep service, `scan` sends the inventory (never the code) so findings are kept
 across applications until a person decides them. The GitHub Action
-[`depwatch-action`](https://github.com/kimathinjoki/depwatch-action) runs it in CI.
+[`watchdep-action`](https://github.com/kimathinjoki/watchdep-action) runs it in CI.
 
-The rule it never breaks: **nothing reads as clean when depwatch did not look.** A file it could not
+The rule it never breaks: **nothing reads as clean when watchdep did not look.** A file it could not
 read, an ecosystem it does not support, an image it could not pull or a source that did not answer
 is shown, and makes the run incomplete, with its own exit code.
 
 ## Install
 
 Releases are one static binary per platform (Linux, macOS and Windows, on amd64 and arm64), with a
-checksums file, on the [releases page](https://github.com/kimathinjoki/depwatch-cli/releases).
-Download the archive for your platform and `checksums.txt`, check it and put `depwatch` on your path:
+checksums file, on the [releases page](https://github.com/kimathinjoki/watchdep-cli/releases).
+Download the archive for your platform and `checksums.txt`, check it and put `watchdep` on your path:
 
 ```sh
 v=0.1.0
-curl -fsSLO "https://github.com/kimathinjoki/depwatch-cli/releases/download/v$v/depwatch_${v}_linux_amd64.tar.gz"
-curl -fsSLO "https://github.com/kimathinjoki/depwatch-cli/releases/download/v$v/checksums.txt"
+curl -fsSLO "https://github.com/kimathinjoki/watchdep-cli/releases/download/v$v/watchdep_${v}_linux_amd64.tar.gz"
+curl -fsSLO "https://github.com/kimathinjoki/watchdep-cli/releases/download/v$v/checksums.txt"
 sha256sum --check --ignore-missing checksums.txt
-tar -xzf "depwatch_${v}_linux_amd64.tar.gz" depwatch
-./depwatch version
+tar -xzf "watchdep_${v}_linux_amd64.tar.gz" watchdep
+./watchdep version
 ```
 
 Or build it from source with Go 1.27 or later:
 
 ```sh
-git clone https://github.com/kimathinjoki/depwatch-cli
-cd depwatch-cli
-make build            # writes bin/depwatch
-./bin/depwatch version
+git clone https://github.com/kimathinjoki/watchdep-cli
+cd watchdep-cli
+make build            # writes bin/watchdep
+./bin/watchdep version
 ```
 
 ## Commands
 
-### `depwatch inventory [path]`
+### `watchdep inventory [path]`
 
 Lists everything the project contains, and everything that could not be read. Makes no network call.
 
 ```text
-$ depwatch inventory
-depwatch inventory  storefront  main 3f2c1a9
+$ watchdep inventory
+watchdep inventory  storefront  main 3f2c1a9
 
 Not read (1)
   client/package-lock.json
@@ -66,11 +66,11 @@ Runtimes  (listed, not yet checked)
 
 What was not read always comes first, in deep orange. `--json` writes the inventory exactly as
 [`schema/inventory.schema.json`](schema/inventory.schema.json) defines it; this is the shape the
-depwatch server accepts.
+watchdep server accepts.
 
 Symbolic links: a link to a file inside the project is read under the link's own path, and a link to
 a folder inside it is not entered twice (the folder is walked under its own path). A link that leads
-outside the project, or nowhere, is never followed; when it is a folder, or a file depwatch would read
+outside the project, or nowhere, is never followed; when it is a folder, or a file watchdep would read
 (a dependency file, a Dockerfile, a version file), it is listed as not read and the run is incomplete.
 
 Flags: `--image <ref>` reads a container image (a local tarball from `docker save` or an OCI archive,
@@ -78,16 +78,16 @@ or a registry reference); `--rootfs <dir>` reads the package databases in a fold
 root filesystem (a folder with no package database in it is listed as not read, and the run is
 incomplete). Both may be repeated.
 
-Exit codes: `0` everything found was read; `2` incomplete; `3` a usage or `depwatch.yml` error.
+Exit codes: `0` everything found was read; `2` incomplete; `3` a usage or `watchdep.yml` error.
 
-### `depwatch gate [path]`
+### `watchdep gate [path]`
 
 Takes the inventory, checks it against OSV, CISA KEV and EPSS, ranks every finding, and exits
 non-zero when one meets the threshold, so a CI build can stop on it.
 
 ```text
-$ depwatch gate
-depwatch gate  billing  main 50246b7
+$ watchdep gate
+watchdep gate  billing  main 50246b7
 
 SEVERE  CVE-2021-44228  GHSA-jfh8-c2jp-5v3q  [fails the gate]
   Remote code injection in Log4j
@@ -129,37 +129,37 @@ A folder with no dependency files at all (for example a CI job that never checke
 not clean: `gate` says "No dependency files found in this folder. Nothing was checked; this is not a
 clean result." and exits 2.
 
-`gate` pulls base images named in `depwatch.yml` or a Dockerfile's final stage, unless `--image`
+`gate` pulls base images named in `watchdep.yml` or a Dockerfile's final stage, unless `--image`
 already gave it the built image. `--rootfs` does not stand in for base images (nothing says which image
 a folder came from), so they are still pulled. A base image it cannot pull makes the run incomplete.
 
-### `depwatch scan [path]`
+### `watchdep scan [path]`
 
-Sends the project's inventory to a depwatch server. Only the inventory leaves the machine; the code
+Sends the project's inventory to a watchdep server. Only the inventory leaves the machine; the code
 never does.
 
 ```sh
-export DEPWATCH_SERVER=https://depwatch.example.com
-export DEPWATCH_TOKEN=dwp_...      # created on the part's Tokens page, shown once
-depwatch scan
+export WATCHDEP_SERVER=https://watchdep.example.com
+export WATCHDEP_TOKEN=wdp_...      # created on the part's Tokens page, shown once
+watchdep scan
 ```
 
-The server and token come from `--server` and `--token`, else `DEPWATCH_SERVER` and `DEPWATCH_TOKEN`,
-else the last `depwatch login`. Exit codes: `0` sent; `2` the server did not answer, or did not look (a hosted plan's scans for today are used; the server's reason is printed); `3` no token, a
+The server and token come from `--server` and `--token`, else `WATCHDEP_SERVER` and `WATCHDEP_TOKEN`,
+else the last `watchdep login`. Exit codes: `0` sent; `2` the server did not answer, or did not look (a hosted plan's scans for today are used; the server's reason is printed); `3` no token, a
 refused token, or an inventory the server rejected.
 
-### `depwatch check [path]`
+### `watchdep check [path]`
 
 Checks whether the code uses each open finding's package, and sends draft verdicts (used, not used,
 unclear) with evidence as file paths and line numbers to the server. A verdict never closes a finding;
 a person decides.
 
 ```sh
-depwatch check                 # with DEPWATCH_SERVER and DEPWATCH_TOKEN, as scan
-depwatch check --dry-run       # print the verdicts, send nothing
-depwatch check --assist        # have a model draft each verdict, with your own key
-depwatch check --assist --provider google --model gemini-4-argon
-depwatch models --provider openai   # the models --assist can use with that provider
+watchdep check                 # with WATCHDEP_SERVER and WATCHDEP_TOKEN, as scan
+watchdep check --dry-run       # print the verdicts, send nothing
+watchdep check --assist        # have a model draft each verdict, with your own key
+watchdep check --assist --provider google --model gemini-4-argon
+watchdep models --provider openai   # the models --assist can use with that provider
 ```
 
 "Not used" is drafted only when the check can be sure: the package is a direct dependency, the names
@@ -171,22 +171,22 @@ the Gemfile says `require: false`). Otherwise the verdict is unclear, with the r
 
 Code leaves the machine only as a few lines around each piece of evidence, and only when the workspace
 owner allowed snippets. With `--assist`, the evidence and the lines around it go to the provider you
-choose, from this machine with your own key; the depwatch server never sees the key or the code.
+choose, from this machine with your own key; the watchdep server never sees the key or the code.
 
 | `--provider` | Key | Default `--model` |
 |---|---|---|
 | `anthropic` | `ANTHROPIC_API_KEY`, or your Anthropic login | `claude-opus-5-5` |
 | `google` | `GEMINI_API_KEY` | `gemini-4-carbon` |
-| `openai` | `OPENAI_API_KEY` | none: name one (`depwatch models --provider openai`) |
+| `openai` | `OPENAI_API_KEY` | none: name one (`watchdep models --provider openai`) |
 
 Without `--provider`, the first key set in that order chooses. The assistant may sharpen a verdict and
 its reason, but never turns a found use into "not used"; a refusal, an error or an answer in the wrong
 form keeps the search's verdict and says why. Google and OpenAI are asked to keep no copy of the
 request.
 
-### `depwatch fix [path]`
+### `watchdep fix [path]`
 
-Run in the project's own CI (`depwatch-action` does it). For each finding the workspace set to be fixed
+Run in the project's own CI (`watchdep-action` does it). For each finding the workspace set to be fixed
 by pull request, it upgrades the package with the project's own package manager (npm, yarn, pnpm, bun,
 Composer, Bundler, pip requirements, poetry, uv, pipenv, Go modules, Cargo; Dockerfile base images pinned
 by digest), using the package manager's override for a package that comes in through another, takes
@@ -200,30 +200,30 @@ fix that is not a plain version (no range, URL or `github:` spec) are refused an
 upgrades pin the exact fix version. npm, yarn, pnpm and bun run with install scripts off, Composer with
 scripts and plugins off, and every package manager gets a minimal environment: `PATH`, `HOME`, proxies,
 certificates and its own settings, but never a variable that looks like a credential (`GITHUB_TOKEN`,
-`DEPWATCH_TOKEN`, `NODE_AUTH_TOKEN` and the like), so a private registry needs its credentials in the
+`WATCHDEP_TOKEN`, `NODE_AUTH_TOKEN` and the like), so a private registry needs its credentials in the
 package manager's own configuration file. A package no longer found in its file after the change is not
 a verified fix. A base image moved to a new digest is read again to check it carries the fixed
 operating system package; below the fix, the Dockerfile is put back; when the new image cannot be read,
 the pull request says plainly that the fix is not verified.
 
-### `depwatch deployed --sha <commit>`
+### `watchdep deployed --sha <commit>`
 
-Reports a deployment from the deploy step, so production is what was deployed. Run `depwatch scan` in
+Reports a deployment from the deploy step, so production is what was deployed. Run `watchdep scan` in
 the same step so the deployed commit has an inventory.
 
-### `depwatch login --server <url> --token <token>`
+### `watchdep login --server <url> --token <token>`
 
-Stores a part's token in your config folder (`~/.config/depwatch/credentials.json` on Linux, readable
+Stores a part's token in your config folder (`~/.config/watchdep/credentials.json` on Linux, readable
 only by you) so `scan` can use it.
 
-### `depwatch mirror sync` and `depwatch mirror status`
+### `watchdep mirror sync` and `watchdep mirror status`
 
 Keep a local copy of OSV for matching with no network per package:
 
 ```sh
-depwatch mirror sync --dir ~/osv --ecosystem npm --ecosystem RubyGems
-depwatch mirror status --dir ~/osv
-depwatch gate --mirror ~/osv          # gate against the mirror instead of the OSV API
+watchdep mirror sync --dir ~/osv --ecosystem npm --ecosystem RubyGems
+watchdep mirror status --dir ~/osv
+watchdep gate --mirror ~/osv          # gate against the mirror instead of the OSV API
 ```
 
 An unchanged export is not downloaded again; a failed download keeps the previous copy. `gate --mirror`
@@ -232,17 +232,17 @@ still answers from that copy, but an ecosystem whose last sync failed, or whose 
 with no route to OSV, download `https://osv-vulnerabilities.storage.googleapis.com/<Ecosystem>/all.zip`
 elsewhere and install it with `--archive all.zip` (one ecosystem at a time).
 
-### `depwatch match --mirror <dir> --inventory <file>`
+### `watchdep match --mirror <dir> --inventory <file>`
 
 Reads an inventory file and answers, from a mirror, which advisories
 affect each package, with each advisory's entry, facts (CVSS score, source severity, malicious, CVEs)
 and fix versions. It does no ranking. You will rarely run it yourself.
 
-### `depwatch version`
+### `watchdep version`
 
 Prints the version, commit and build date stamped at build time.
 
-### `depwatch reference`
+### `watchdep reference`
 
 Hidden from `--help`: writes the whole command line (every command, flag, default, the exit codes and
 the environment variables) as JSON. The public site's docs are generated from it, so they say exactly
@@ -255,17 +255,17 @@ what `--help` says.
 | 0 | Nothing meets the threshold and the check is complete |
 | 1 | A finding meets the threshold. Wins over incomplete. |
 | 2 | Incomplete: something could not be read or checked, or a source did not answer. 0 instead with `--allow-incomplete` when nothing meets the threshold. |
-| 3 | A usage or `depwatch.yml` error, including a path that does not exist or is not a folder |
+| 3 | A usage or `watchdep.yml` error, including a path that does not exist or is not a folder |
 
 Every command accepts `--json`, which switches all output, errors included, to JSON. Colour is used
 only when the output is a terminal, and `NO_COLOR` turns it off.
 
-## Configure: `depwatch.yml`
+## Configure: `watchdep.yml`
 
 An optional file at the root of the project for what no lockfile states. Every key is optional; an
 unknown key or a wrong type stops the run with exit code 3 and names the line. The annotated example
-is [`examples/depwatch.yml`](examples/depwatch.yml); the schema is
-[`schema/depwatch.schema.json`](schema/depwatch.schema.json).
+is [`examples/watchdep.yml`](examples/watchdep.yml); the schema is
+[`schema/watchdep.schema.json`](schema/watchdep.schema.json).
 
 ```yaml
 version: 1
@@ -286,15 +286,15 @@ ignore:
 ```
 
 Runtimes also come from `.ruby-version`, `.nvmrc`, `.node-version`, `.python-version` and
-`.tool-versions`. When `depwatch.yml` and a version file in the same folder disagree, both are listed
+`.tool-versions`. When `watchdep.yml` and a version file in the same folder disagree, both are listed
 and the output says they disagree. The gate lists runtimes without checking them (the output says so);
-a depwatch server checks them against NVD and endoflife.date.
+a watchdep server checks them against NVD and endoflife.date.
 
 ## In CI
 
 ```yaml
-# .github/workflows/depwatch.yml
-name: depwatch
+# .github/workflows/watchdep.yml
+name: watchdep
 on: [push, pull_request]
 jobs:
   gate:
@@ -303,14 +303,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the image
         run: docker build -t app:ci . && docker save app:ci -o app.tar
-      - uses: kimathinjoki/depwatch-action@73a15c2faba925284e976f589e3ec2ae871b1d07   # v1, pinned by commit SHA
+      - uses: kimathinjoki/watchdep-action@73a15c2faba925284e976f589e3ec2ae871b1d07   # v1, pinned by commit SHA
         with:
           version: 0.1.0
           command: gate
           args: --image app.tar --fail-on malicious,kev,severe
 ```
 
-[`depwatch-action`](https://github.com/kimathinjoki/depwatch-action) installs a release whose checksums
+[`watchdep-action`](https://github.com/kimathinjoki/watchdep-action) installs a release whose checksums
 it carries (its `version` input is required), checks the download against them and runs the command.
 
 Reading the built image (`--image app.tar`) checks the operating system packages production will
@@ -335,7 +335,7 @@ read a `.env` file itself.
 ## Build and test
 
 ```sh
-make build      # bin/depwatch, stamped with the git version
+make build      # bin/watchdep, stamped with the git version
 make test       # unit tests and the known incidents corpus, offline, with the race detector
 make lint       # gofmt, go vet, staticcheck
 make live       # the corpus against the real sources (network), reporting any drift
@@ -344,7 +344,7 @@ make snapshot   # six release binaries and checksums in dist/, checked; nothing 
 
 To release, tag `main` (`git tag v0.1.0 && git push origin v0.1.0`). The release workflow runs the
 suite, then publishes the binaries and `checksums.txt` as a GitHub release. Copy that `checksums.txt`
-into `depwatch-action` as `checksums/<version>.txt` so the Action can install it.
+into `watchdep-action` as `checksums/<version>.txt` so the Action can install it.
 
 No test reaches the network by default. Source answers are recorded under `testdata/`; the `live`
 build tag re-runs the corpus against the real sources. To refresh the recordings after a reviewed
@@ -356,7 +356,7 @@ lockfile, the event-stream and ua-parser-js compromises, the xz backdoor in a De
 Django lockfile, a critical advisory with no EPSS score, a development-only critical, a corrupt
 lockfile with an unsupported file, and a stalled source. A change that drops one fails the build.
 
-The ranking rules are every case in `testdata/ranking_cases.json`; the depwatch service is tested
+The ranking rules are every case in `testdata/ranking_cases.json`; the watchdep service is tested
 against the same cases, so both rank alike.
 
 ## Licence

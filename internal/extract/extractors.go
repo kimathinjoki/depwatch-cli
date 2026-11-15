@@ -11,7 +11,7 @@ import (
 	"github.com/google/osv-scalibr/plugin/config"
 )
 
-// sourceExtractors are the language extractors depwatch uses on a project folder.
+// sourceExtractors are the language extractors watchdep uses on a project folder.
 // Secrets, editor and CI metadata, Bazel and binary artifacts are left out on purpose.
 func sourceExtractors() ([]filesystem.Extractor, error) {
 	maps := []list.InitMap{

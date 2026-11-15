@@ -38,7 +38,7 @@ var unsafeBranch = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
 
 // BranchName is one branch per finding per part.
 func BranchName(item Item, part string) string {
-	return "depwatch/" + strings.Trim(unsafeBranch.ReplaceAllString(strings.ToLower(item.PrimaryID+"-"+part), "-"), "-")
+	return "watchdep/" + strings.Trim(unsafeBranch.ReplaceAllString(strings.ToLower(item.PrimaryID+"-"+part), "-"), "-")
 }
 
 // Title of the pull request.
@@ -52,7 +52,7 @@ var labelWords = map[string]string{"exploited_now": "exploited now (CISA KEV)", 
 // and says a person merges.
 func Body(item Item, part string, changes map[string]Change) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "depwatch found **%s** (%s) in %s: %s\n\n", item.PrimaryID, item.Level, part, item.Summary)
+	fmt.Fprintf(&b, "watchdep found **%s** (%s) in %s: %s\n\n", item.PrimaryID, item.Level, part, item.Summary)
 	var why []string
 	for _, l := range item.Labels {
 		if w, ok := labelWords[l]; ok {
@@ -77,7 +77,7 @@ func Body(item Item, part string, changes map[string]Change) string {
 			b.WriteString(". **This is a new major version**: check its changelog")
 		}
 		if c.Unverified != "" {
-			fmt.Fprintf(&b, ". **Not verified:** depwatch could not show this fix in a fresh inventory (%s). Check that the rebuilt image carries `%s` %s or later before merging", c.Unverified, t.Name, t.Fix)
+			fmt.Fprintf(&b, ". **Not verified:** watchdep could not show this fix in a fresh inventory (%s). Check that the rebuilt image carries `%s` %s or later before merging", c.Unverified, t.Name, t.Fix)
 		}
 		b.WriteString(".\n")
 		for i, p := range t.Paths {
@@ -97,7 +97,7 @@ func Body(item Item, part string, changes map[string]Change) string {
 		}
 	}
 	fmt.Fprintf(&b, "\nAdvisories: %s. The finding: %s\n\n", strings.Join(item.IDs, ", "), item.URL)
-	b.WriteString("Your CI tests this change. **A person approves and merges it: depwatch never merges.**\n")
+	b.WriteString("Your CI tests this change. **A person approves and merges it: watchdep never merges.**\n")
 	return b.String()
 }
 

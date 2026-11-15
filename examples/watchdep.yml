@@ -1,6 +1,6 @@
-# depwatch.yml: what no lockfile states about this part.
+# watchdep.yml: what no lockfile states about this part.
 # Place it at the root of the part. Every key is optional.
-# The schema is schema/depwatch.schema.json; the CLI and the server read it with the same code.
+# The schema is schema/watchdep.schema.json; the CLI and the server read it with the same code.
 
 version: 1
 
@@ -28,7 +28,7 @@ hosting:
     version: "24"
 
 # Base images built or pulled elsewhere that production runs on. The CLI reads them with
-# depwatch inventory --image; the server pulls public ones.
+# watchdep inventory --image; the server pulls public ones.
 images:
   - ruby:3.3.4-slim-bookworm
 

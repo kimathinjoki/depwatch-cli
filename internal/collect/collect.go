@@ -15,12 +15,12 @@ import (
 	"github.com/google/osv-scalibr/extractor/filesystem/osv"
 	scalibrfs "github.com/google/osv-scalibr/fs"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/config"
-	"github.com/kimathinjoki/depwatch-cli/internal/discover"
-	"github.com/kimathinjoki/depwatch-cli/internal/extract"
-	"github.com/kimathinjoki/depwatch-cli/internal/graph"
-	"github.com/kimathinjoki/depwatch-cli/internal/image"
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/config"
+	"github.com/kimathinjoki/watchdep-cli/internal/discover"
+	"github.com/kimathinjoki/watchdep-cli/internal/extract"
+	"github.com/kimathinjoki/watchdep-cli/internal/graph"
+	"github.com/kimathinjoki/watchdep-cli/internal/image"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
 )
 
 // Options say what to read.
@@ -30,8 +30,8 @@ type Options struct {
 	Images []string
 	// RootFS are folders laid out like a root filesystem whose package databases are read.
 	RootFS []string
-	// PullImages lets the collector pull base images named in depwatch.yml and Dockerfiles. Off for
-	// depwatch inventory, which makes no network call; those images are then listed as not read.
+	// PullImages lets the collector pull base images named in watchdep.yml and Dockerfiles. Off for
+	// watchdep inventory, which makes no network call; those images are then listed as not read.
 	PullImages bool
 	CLIVersion string
 	Now        func() time.Time
@@ -42,7 +42,7 @@ type Options struct {
 	Branch  string
 }
 
-// Take takes the inventory. A depwatch.yml problem is returned as *config.Error.
+// Take takes the inventory. A watchdep.yml problem is returned as *config.Error.
 func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config, error) {
 	root, err := filepath.Abs(o.Root)
 	if err != nil {
@@ -90,7 +90,7 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 	inv.Unpinned = res.Unpinned
 	inv.Packages = packages(fsys, res)
 
-	// Runtimes from version files and depwatch.yml.
+	// Runtimes from version files and watchdep.yml.
 	var fromFiles []inventory.Runtime
 	for _, f := range files {
 		if config.VersionFiles[path.Base(f.Path)] {
@@ -137,7 +137,7 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 		inv.FilesRead = append(inv.FilesRead, r.FilesRead...)
 		inv.FilesNotRead = append(inv.FilesNotRead, r.FilesNotRead...)
 	}
-	// Base images named in depwatch.yml and in Dockerfiles. When the built image itself was read
+	// Base images named in watchdep.yml and in Dockerfiles. When the built image itself was read
 	// (--image), it already holds its base image's packages. A --rootfs folder does not stand in for
 	// them: nothing says which image, if any, it was exported from.
 	if len(o.Images) == 0 {
@@ -150,7 +150,7 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 				readImage(ref.Reference)
 			default:
 				inv.Images = append(inv.Images, inventory.Image{Reference: ref.Reference,
-					Reason: "not pulled: depwatch inventory makes no network call; depwatch gate pulls it, or pass --image"})
+					Reason: "not pulled: watchdep inventory makes no network call; watchdep gate pulls it, or pass --image"})
 			}
 		}
 	}
@@ -160,7 +160,7 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 }
 
 // splitLinks takes out the symbolic links that were not followed. A link to a folder outside the
-// part, or one that names a file depwatch would read (a dependency file, a Dockerfile, a version
+// part, or one that names a file watchdep would read (a dependency file, a Dockerfile, a version
 // file), is listed as not read: what it leads to was never looked at. Other links (a README, an
 // editor setting) are dropped, as they hold no dependencies.
 func splitLinks(walked []discover.File) ([]discover.File, []inventory.FileNotRead) {

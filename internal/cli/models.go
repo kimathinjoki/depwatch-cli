@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/codecheck"
+	"github.com/kimathinjoki/watchdep-cli/internal/codecheck"
 )
 
 func newModels(env *Env) *cobra.Command {

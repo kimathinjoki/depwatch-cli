@@ -1,4 +1,4 @@
-module github.com/kimathinjoki/depwatch-cli
+module github.com/kimathinjoki/watchdep-cli
 
 go 1.27.4
 

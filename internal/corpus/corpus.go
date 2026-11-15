@@ -1,5 +1,5 @@
 // Package corpus runs the known incidents corpus: real historical cases, with real versions and
-// recorded source responses, end to end through depwatch gate.
+// recorded source responses, end to end through watchdep gate.
 package corpus
 
 import (
@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/cli"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/cli"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
 )
 
 // Dir is the corpus folder, relative to this package.

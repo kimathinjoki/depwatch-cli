@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
+	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
 )
 
 func load(t *testing.T, files map[string]string) *Code {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/schema"
+	"github.com/kimathinjoki/watchdep-cli/schema"
 )
 
 func sample() *Inventory {
@@ -26,7 +26,7 @@ func sample() *Inventory {
 		FilesNotRead: []FileNotRead{{Path: "client/package-lock.json", Reason: "bad json"}},
 		Unsupported:  []Unsupported{{Path: "build.sbt", Ecosystem: "Scala (sbt)"}},
 		Unpinned:     []Unpinned{{Path: "tools/package.json", Ecosystem: "npm"}},
-		Conflicts:    []Conflict{{Name: "ruby", Runtimes: []Runtime{{Kind: KindRuntime, Name: "ruby", Version: "3.3.4", SourceFile: "depwatch.yml"}}}},
+		Conflicts:    []Conflict{{Name: "ruby", Runtimes: []Runtime{{Kind: KindRuntime, Name: "ruby", Version: "3.3.4", SourceFile: "watchdep.yml"}}}},
 	}
 }
 
@@ -134,7 +134,7 @@ func TestFieldsMatchSchemaVersion(t *testing.T) {
 
 	golden := "testdata/fields_v" + SchemaVersion + ".txt"
 	want, err := os.ReadFile(golden)
-	if os.Getenv("DEPWATCH_WRITE_FIELDS") == "1" {
+	if os.Getenv("WATCHDEP_WRITE_FIELDS") == "1" {
 		_ = os.WriteFile(golden, []byte(strings.Join(model, "\n")+"\n"), 0o644)
 		return
 	}
@@ -144,6 +144,6 @@ func TestFieldsMatchSchemaVersion(t *testing.T) {
 	if strings.TrimSpace(string(want)) != strings.Join(model, "\n") {
 		t.Fatalf("the inventory's fields changed but SchemaVersion is still %q. Bump SchemaVersion, update "+
 			"schema/inventory.schema.json, and record the new field list in testdata/fields_v<version>.txt "+
-			"(DEPWATCH_WRITE_FIELDS=1 go test ./internal/inventory).", SchemaVersion)
+			"(WATCHDEP_WRITE_FIELDS=1 go test ./internal/inventory).", SchemaVersion)
 	}
 }

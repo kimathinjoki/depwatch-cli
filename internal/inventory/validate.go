@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/kimathinjoki/depwatch-cli/schema"
+	"github.com/kimathinjoki/watchdep-cli/schema"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 

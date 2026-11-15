@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kimathinjoki/depwatch-cli/schema/inventory.schema.json",
-  "title": "depwatch inventory",
+  "$id": "https://github.com/kimathinjoki/watchdep-cli/schema/inventory.schema.json",
+  "title": "watchdep inventory",
   "description": "Everything one part contains on one commit, and how it was taken. Version 1.",
   "type": "object",
   "additionalProperties": false,

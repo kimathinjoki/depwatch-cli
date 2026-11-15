@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
+	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
 )
 
 // listing writes a folder's files as "<path> <size>" lines, as a forge's tree would give them.
@@ -122,7 +122,7 @@ func TestWantedParity(t *testing.T) {
 }
 
 func TestWantedSkipsInstalledAndIgnoredFolders(t *testing.T) {
-	cfg := filepath.Join(t.TempDir(), "depwatch.yml")
+	cfg := filepath.Join(t.TempDir(), "watchdep.yml")
 	_ = os.WriteFile(cfg, []byte("ignore:\n  - legacy\n"), 0o644)
 	var out bytes.Buffer
 	in := "package-lock.json 10\nnode_modules/a/package-lock.json 10\nvendor/b/composer.lock 5\nlegacy/Gemfile.lock 9\nweb/yarn.lock 4\nREADME.md 3\n.nvmrc 2\nDockerfile 9\n"

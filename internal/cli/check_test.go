@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
+	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
 )
 
 func TestCheckFetchesSearchesAndSends(t *testing.T) {
 	var sent map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer dwp_t" {
+		if r.Header.Get("Authorization") != "Bearer wdp_t" {
 			w.WriteHeader(401)
 			return
 		}
@@ -32,7 +32,7 @@ func TestCheckFetchesSearchesAndSends(t *testing.T) {
 	dir := testutil.Tree(t, map[string]string{"src/api.js": "import axios from 'axios'\nexport const get = axios.get\n"})
 	var out strings.Builder
 	env := Env{Stdout: &out, Stderr: &out, Getenv: func(k string) string {
-		return map[string]string{"DEPWATCH_SERVER": srv.URL, "DEPWATCH_TOKEN": "dwp_t"}[k]
+		return map[string]string{"WATCHDEP_SERVER": srv.URL, "WATCHDEP_TOKEN": "wdp_t"}[k]
 	}}
 	if code := Run([]string{"check", dir}, env); code != 0 {
 		t.Fatalf("exit %d: %s", code, out.String())
@@ -51,7 +51,7 @@ func TestCheckFetchesSearchesAndSends(t *testing.T) {
 	}
 	bad := env
 	bad.Getenv = func(k string) string {
-		return map[string]string{"DEPWATCH_SERVER": srv.URL, "DEPWATCH_TOKEN": "dwp_x"}[k]
+		return map[string]string{"WATCHDEP_SERVER": srv.URL, "WATCHDEP_TOKEN": "wdp_x"}[k]
 	}
 	if code := Run([]string{"check", dir}, bad); code != ExitUsage {
 		t.Fatalf("refused token: exit %d", code)
@@ -80,7 +80,7 @@ func TestCheckAssistProviders(t *testing.T) {
 	}))
 	defer gemini.Close()
 	dir := testutil.Tree(t, map[string]string{"src/api.js": "import axios from 'axios'\n"})
-	keys := map[string]string{"DEPWATCH_SERVER": srv.URL, "DEPWATCH_TOKEN": "dwp_t", "GEMINI_API_KEY": "gm"}
+	keys := map[string]string{"WATCHDEP_SERVER": srv.URL, "WATCHDEP_TOKEN": "wdp_t", "GEMINI_API_KEY": "gm"}
 	var out strings.Builder
 	env := Env{Stdout: &out, Stderr: &out, Getenv: func(k string) string { return keys[k] }}
 	if code := Run([]string{"check", dir, "--assist", "--assist-base-url", gemini.URL}, env); code != 0 {
@@ -93,7 +93,7 @@ func TestCheckAssistProviders(t *testing.T) {
 
 	keys["OPENAI_API_KEY"] = "sk-o"
 	out.Reset()
-	if code := Run([]string{"check", dir, "--assist", "--provider", "openai"}, env); code != ExitUsage || !strings.Contains(out.String(), "depwatch models --provider openai") {
+	if code := Run([]string{"check", dir, "--assist", "--provider", "openai"}, env); code != ExitUsage || !strings.Contains(out.String(), "watchdep models --provider openai") {
 		t.Fatalf("OpenAI with no model: exit %d: %s", code, out.String())
 	}
 	out.Reset()
@@ -102,7 +102,7 @@ func TestCheckAssistProviders(t *testing.T) {
 	}
 }
 
-// depwatch models lists a provider's models with the key from the environment.
+// watchdep models lists a provider's models with the key from the environment.
 func TestModels(t *testing.T) {
 	gemini := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

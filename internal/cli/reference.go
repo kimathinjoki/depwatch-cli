@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 // The reference: the whole command line as JSON, read by the public site's generator so the docs come
@@ -18,15 +18,15 @@ var ExitCodes = []RefExit{
 	{ExitOK, "Nothing meets the threshold, and everything was looked at."},
 	{ExitFindings, "A finding meets the threshold (gate), or the server answered with findings that fail."},
 	{ExitIncomplete, "Incomplete: a file could not be read, an ecosystem is not supported, an image could not be pulled, or a source or the server did not answer or would not look (the plan's scans for today are used)."},
-	{ExitUsage, "The command line or depwatch.yml is wrong."},
+	{ExitUsage, "The command line or watchdep.yml is wrong."},
 }
 
 // EnvVars are the environment variables the CLI reads. A test checks that every one the code reads
 // is listed.
 var EnvVars = []RefEnv{
-	{"DEPWATCH_SERVER", "scan, check, fix, deployed", "The depwatch server's address, instead of --server or a login."},
-	{"DEPWATCH_TOKEN", "scan, check, fix, deployed", "The part's project token, instead of --token or a login."},
-	{"DEPWATCH_CREDENTIALS", "login and every command that talks to a server", "Where login stores tokens; by default the user's config folder."},
+	{"WATCHDEP_SERVER", "scan, check, fix, deployed", "The watchdep server's address, instead of --server or a login."},
+	{"WATCHDEP_TOKEN", "scan, check, fix, deployed", "The part's project token, instead of --token or a login."},
+	{"WATCHDEP_CREDENTIALS", "login and every command that talks to a server", "Where login stores tokens; by default the user's config folder."},
 	{"GITHUB_TOKEN", "fix", "The repository's token, to open and update pull requests."},
 	{"GITHUB_REPOSITORY", "fix", "The repository as owner/name (set by GitHub Actions)."},
 	{"GITHUB_API_URL", "fix", "GitHub's API address; https://api.github.com by default (set by GitHub Actions)."},

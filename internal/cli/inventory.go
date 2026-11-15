@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/collect"
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/collect"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 type takeFlags struct {
@@ -36,10 +36,10 @@ func newInventory(env *Env) *cobra.Command {
 operating system packages of any image or root filesystem given, and every file that could not be
 read, every unsupported ecosystem and every manifest with no lockfile.
 
-Makes no network call (unless --pull-images). Base images named in depwatch.yml or a Dockerfile are listed as not read;
-depwatch gate pulls them, or pass --image.
+Makes no network call (unless --pull-images). Base images named in watchdep.yml or a Dockerfile are listed as not read;
+watchdep gate pulls them, or pass --image.
 
-Exit codes: 0 complete, 2 incomplete (something could not be read), 3 usage or depwatch.yml error.`,
+Exit codes: 0 complete, 2 incomplete (something could not be read), 3 usage or watchdep.yml error.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
 			root, err := partRoot(args)
@@ -70,7 +70,7 @@ Exit codes: 0 complete, 2 incomplete (something could not be read), 3 usage or d
 		},
 	}
 	addTakeFlags(c, &tf)
-	c.Flags().BoolVar(&pull, "pull-images", false, "pull the base images named in Dockerfiles and depwatch.yml (makes network calls)")
+	c.Flags().BoolVar(&pull, "pull-images", false, "pull the base images named in Dockerfiles and watchdep.yml (makes network calls)")
 	c.Flags().StringVar(&takenBy, "taken-by", "cli", "how the files were obtained: cli, or github when a server fetched them")
 	c.Flags().StringVar(&commit, "commit", "", "the commit the files are from, for a folder that is not a git checkout")
 	c.Flags().StringVar(&branch, "branch", "", "the branch the files are from, for a folder that is not a git checkout")
@@ -93,7 +93,7 @@ func partLine(inv *inventory.Inventory) string {
 }
 
 func printInventory(w io.Writer, st style, inv *inventory.Inventory) {
-	fmt.Fprintf(w, "%s  %s\n\n", st.bold("depwatch inventory"), partLine(inv))
+	fmt.Fprintf(w, "%s  %s\n\n", st.bold("watchdep inventory"), partLine(inv))
 
 	// What was not read comes first, in deep orange: it is never read as clean.
 	printGaps(w, st, inv)

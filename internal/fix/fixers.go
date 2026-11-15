@@ -47,10 +47,10 @@ type Runner func(ctx context.Context, dir, name string, args ...string) error
 
 // ExecRunner runs real commands, with their output kept for the error. The command gets a minimal
 // environment (MinimalEnv): a package manager may run code from the packages it fetches, and that code
-// must never see GITHUB_TOKEN, DEPWATCH_TOKEN or any other secret of the job.
+// must never see GITHUB_TOKEN, WATCHDEP_TOKEN or any other secret of the job.
 func ExecRunner(ctx context.Context, dir, name string, args ...string) error {
 	if _, err := exec.LookPath(name); err != nil {
-		return fmt.Errorf("%s is not installed here: set the package manager up before depwatch fix", name)
+		return fmt.Errorf("%s is not installed here: set the package manager up before watchdep fix", name)
 	}
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir

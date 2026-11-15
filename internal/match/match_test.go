@@ -5,9 +5,9 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/rank"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/rank"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
 )
 
 func pkg(eco, name, version, scope string) inventory.Package {

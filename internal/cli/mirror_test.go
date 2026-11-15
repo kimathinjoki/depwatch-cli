@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/mirror"
+	"github.com/kimathinjoki/watchdep-cli/internal/mirror"
 )
 
 func importMirror(t *testing.T, entries map[string]map[string]any) string {
@@ -37,7 +37,7 @@ func osvEntry(id, name, summary string) map[string]any {
 		"package": map[string]any{"ecosystem": "npm", "name": name}, "versions": []string{"1.0.0"}}}}
 }
 
-// depwatch mirror package lists every advisory for one package; the server builds related advisories from it.
+// watchdep mirror package lists every advisory for one package; the server builds related advisories from it.
 func TestMirrorPackage(t *testing.T) {
 	dir := importMirror(t, map[string]map[string]any{
 		"GHSA-a": osvEntry("GHSA-a", "x", "first"), "GHSA-b": osvEntry("GHSA-b", "x", "second"), "GHSA-c": osvEntry("GHSA-c", "y", "other"),

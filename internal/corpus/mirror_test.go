@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/mirror"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/mirror"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
 )
 
 // The mirror answers the same advisory ids as the recorded OSV API for every corpus case: the

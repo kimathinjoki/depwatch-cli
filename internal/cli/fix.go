@@ -9,10 +9,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/client"
-	"github.com/kimathinjoki/depwatch-cli/internal/fix"
-	"github.com/kimathinjoki/depwatch-cli/internal/image"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/client"
+	"github.com/kimathinjoki/watchdep-cli/internal/fix"
+	"github.com/kimathinjoki/watchdep-cli/internal/image"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 // fixTools lets tests replace the package managers and the registry.
@@ -24,12 +24,12 @@ func newFix(env *Env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "fix [path]",
 		Short: "Open a pull request per finding that the workspace wants fixed by pull request",
-		Long: `Run in the project's own CI (depwatch-action does this). Fetches from the depwatch server the part's
+		Long: `Run in the project's own CI (watchdep-action does this). Fetches from the watchdep server the part's
 findings whose fix setting is "open a pull request"; for each, makes a branch, upgrades the package
 with the project's own package manager (an override for a package that comes in through another
 one), takes the inventory again to check the fix version is reached, commits, pushes, and opens a pull
 request with the repository's own token, or updates the one already open. Each run also reports the
-state of the pull requests it opened before. depwatch never merges: a person approves and merges.
+state of the pull requests it opened before. watchdep never merges: a person approves and merges.
 
 Needs GITHUB_TOKEN (contents and pull requests write) and GITHUB_REPOSITORY; GITHUB_API_URL for GitHub
 Enterprise. --dry-run makes the changes, prints them and puts the files back, with no git and no
@@ -60,7 +60,7 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 			}
 			gh := fix.GitHub{API: orDefault(env.Getenv("GITHUB_API_URL"), "https://api.github.com"), Repo: env.Getenv("GITHUB_REPOSITORY"), Token: env.Getenv("GITHUB_TOKEN"), HTTP: env.HTTP}
 			if !dryRun && (gh.Repo == "" || gh.Token == "") {
-				return &usageError{msg: "depwatch fix opens pull requests with GITHUB_TOKEN and GITHUB_REPOSITORY (set in GitHub Actions); use --dry-run to only see the changes"}
+				return &usageError{msg: "watchdep fix opens pull requests with GITHUB_TOKEN and GITHUB_REPOSITORY (set in GitHub Actions); use --dry-run to only see the changes"}
 			}
 			git := fix.Git{Dir: root}
 			if base == "" {
@@ -74,13 +74,13 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 				if item.PullRequest != nil && !dryRun {
 					pr, err := gh.Get(ctx, item.PullRequest.Number)
 					if err == nil {
-						if s := pr.DepwatchState(); s != item.PullRequest.State {
+						if s := pr.WatchdepState(); s != item.PullRequest.State {
 							_, _ = cl.PostJSON(ctx, "/api/v1/fix_pull_requests", map[string]any{"finding_id": item.FindingID, "number": pr.Number, "url": pr.URL,
 								"branch": pr.Head.Ref, "base_branch": pr.Base.Ref, "state": s, "merged_at": pr.MergedAt})
 						}
-						if pr.DepwatchState() == "open" || pr.DepwatchState() == "merged" {
-							fmt.Fprintf(env.Stdout, "%s  %s: pull request #%d is %s\n", st.bold(item.PrimaryID), item.Summary, pr.Number, pr.DepwatchState())
-							report = append(report, map[string]any{"finding_id": item.FindingID, "pull_request": pr.Number, "state": pr.DepwatchState()})
+						if pr.WatchdepState() == "open" || pr.WatchdepState() == "merged" {
+							fmt.Fprintf(env.Stdout, "%s  %s: pull request #%d is %s\n", st.bold(item.PrimaryID), item.Summary, pr.Number, pr.WatchdepState())
+							report = append(report, map[string]any{"finding_id": item.FindingID, "pull_request": pr.Number, "state": pr.WatchdepState()})
 							continue
 						}
 					}
@@ -188,8 +188,8 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 			return nil
 		},
 	}
-	c.Flags().StringVar(&server, "server", "", "the depwatch server's address (default: DEPWATCH_SERVER, else the last login)")
-	c.Flags().StringVar(&token, "token", "", "the part's token (default: DEPWATCH_TOKEN, else the last login)")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the last login)")
+	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the last login)")
 	c.Flags().StringVar(&base, "base", "", "the branch pull requests target (default: the part's production branch)")
 	c.Flags().BoolVar(&dryRun, "dry-run", false, "make the changes, print them and put the files back; no git, no pull request")
 	return c
@@ -202,7 +202,7 @@ func newDeployed(env *Env) *cobra.Command {
 		Short: "Report that a commit was deployed, so production is what was deployed",
 		Long: `Run in the deploy step after a deployment succeeds. With deployment reports, production is the last
 deployed commit: a fix merged but not deployed is "fix merged, not yet in production" until then. Run
-depwatch scan in the same step so the deployed commit has an inventory.`,
+watchdep scan in the same step so the deployed commit has an inventory.`,
 		Args: cobra.NoArgs,
 		RunE: func(c *cobra.Command, _ []string) error {
 			if sha == "" {
@@ -230,7 +230,7 @@ depwatch scan in the same step so the deployed commit has an inventory.`,
 			return nil
 		},
 	}
-	c.Flags().StringVar(&server, "server", "", "the depwatch server's address")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address")
 	c.Flags().StringVar(&token, "token", "", "the part's token")
 	c.Flags().StringVar(&sha, "sha", "", "the deployed commit (default: GITHUB_SHA)")
 	c.Flags().StringVar(&environment, "environment", "production", "the environment deployed to")

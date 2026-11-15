@@ -10,12 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/collect"
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/match"
-	"github.com/kimathinjoki/depwatch-cli/internal/rank"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/collect"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/match"
+	"github.com/kimathinjoki/watchdep-cli/internal/rank"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 // nothingFoundWhy is the reason given when a folder holds no dependency files at all.
@@ -54,7 +54,7 @@ func newGate(env *Env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "gate [path]",
 		Short: "Check the project against OSV, CISA KEV and EPSS, and fail the build on a finding",
-		Long: `Take the inventory, check it against OSV, CISA KEV and EPSS with no depwatch server, rank
+		Long: `Take the inventory, check it against OSV, CISA KEV and EPSS with no watchdep server, rank
 every finding, and exit non-zero when one meets the threshold, so a CI build can stop on it.
 
 --fail-on takes any of:
@@ -68,7 +68,7 @@ Exit codes:
   1  a finding meets the threshold (wins over incomplete)
   2  the check is incomplete: something could not be read or checked, or a source did not answer
      (0 instead with --allow-incomplete, when nothing meets the threshold)
-  3  a usage or depwatch.yml error`,
+  3  a usage or watchdep.yml error`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(c *cobra.Command, args []string) error {
 			root, err := partRoot(args)
@@ -114,7 +114,7 @@ Exit codes:
 	c.Flags().StringSliceVar(&failOn, "fail-on", []string{"malicious", "kev"}, "fail on findings that are any of: malicious, kev, severe, high")
 	c.Flags().BoolVar(&allowIncomplete, "allow-incomplete", false, "exit 0 instead of 2 when the check is incomplete and nothing meets the threshold")
 	c.Flags().Float64Var(&threshold, "epss-threshold", rank.DefaultEPSSThreshold, "EPSS probability at or above which a critical finding is severe")
-	c.Flags().StringVar(&mirrorDir, "mirror", "", "match against a local OSV mirror (depwatch mirror sync) instead of the OSV API; a mirror whose last sync failed or is over 24 hours old makes the check incomplete")
+	c.Flags().StringVar(&mirrorDir, "mirror", "", "match against a local OSV mirror (watchdep mirror sync) instead of the OSV API; a mirror whose last sync failed or is over 24 hours old makes the check incomplete")
 	c.Flags().StringVar(&recording, "recording", "", "answer from a recorded set of source responses instead of the network (tests)")
 	_ = c.Flags().MarkHidden("recording")
 	return c
@@ -250,7 +250,7 @@ var labelWords = map[string]string{
 }
 
 func printGate(w io.Writer, st style, inv *inventory.Inventory, res GateResult, fail map[string]bool) {
-	fmt.Fprintf(w, "%s  %s\n\n", st.bold("depwatch gate"), partLine(inv))
+	fmt.Fprintf(w, "%s  %s\n\n", st.bold("watchdep gate"), partLine(inv))
 	if len(res.Findings) == 0 {
 		if inv.NothingFound() {
 			fmt.Fprintln(w, st.deepOrange("No dependency files found in this folder.")+" Nothing was checked; this is not a clean result.")

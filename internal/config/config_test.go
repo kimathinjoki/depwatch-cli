@@ -12,8 +12,8 @@ import (
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"gopkg.in/yaml.v3"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/schema"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/schema"
 )
 
 // .ruby-version, .nvmrc, .python-version and .tool-versions each add a runtime with its source file.
@@ -41,7 +41,7 @@ func TestVersionFiles(t *testing.T) {
 	}
 }
 
-// When depwatch.yml and a version file disagree, both are listed and the conflict is reported.
+// When watchdep.yml and a version file disagree, both are listed and the conflict is reported.
 func TestConflicts(t *testing.T) {
 	cfg, err := Parse(strings.NewReader("runtimes:\n  ruby: \"3.3.4\"\n"), FileName)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestConflicts(t *testing.T) {
 	}
 }
 
-// An unknown key or a wrong type in depwatch.yml stops the run and names the line.
+// An unknown key or a wrong type in watchdep.yml stops the run and names the line.
 func TestBadConfigNamesTheLine(t *testing.T) {
 	for _, c := range []struct{ src, want string }{
 		{"production_branch: main\nruntime:\n  ruby: 3.3\n", "line 2"},
@@ -96,11 +96,11 @@ func TestVersionsKeepTheirText(t *testing.T) {
 // The annotated example validates against the committed schema, and every key the reader accepts is
 // in the schema.
 func TestExampleAndSchemaAgree(t *testing.T) {
-	raw, err := os.ReadFile("../../examples/depwatch.yml")
+	raw, err := os.ReadFile("../../examples/watchdep.yml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Parse(bytes.NewReader(raw), "examples/depwatch.yml"); err != nil {
+	if _, err := Parse(bytes.NewReader(raw), "examples/watchdep.yml"); err != nil {
 		t.Fatal(err)
 	}
 	var doc any
@@ -110,10 +110,10 @@ func TestExampleAndSchemaAgree(t *testing.T) {
 	asJSON, _ := json.Marshal(doc)
 	sdoc, _ := jsonschema.UnmarshalJSON(bytes.NewReader(schema.Config))
 	c := jsonschema.NewCompiler()
-	if err := c.AddResource("depwatch.schema.json", sdoc); err != nil {
+	if err := c.AddResource("watchdep.schema.json", sdoc); err != nil {
 		t.Fatal(err)
 	}
-	s, err := c.Compile("depwatch.schema.json")
+	s, err := c.Compile("watchdep.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}

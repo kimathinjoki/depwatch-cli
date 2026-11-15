@@ -12,7 +12,7 @@ import (
 const DefaultModel = "claude-opus-5-5"
 
 // Assistant drafts a verdict from the search's evidence with the person's chosen provider and model,
-// using their own key from their machine. The depwatch server never sees the key.
+// using their own key from their machine. The watchdep server never sees the key.
 type Assistant struct {
 	Provider Provider
 	Model    string

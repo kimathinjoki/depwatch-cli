@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/discover"
+	"github.com/kimathinjoki/watchdep-cli/internal/discover"
 )
 
 // Verdicts.

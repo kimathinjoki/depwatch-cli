@@ -1,6 +1,6 @@
-// Package config reads depwatch.yml: what no lockfile states about a part.
+// Package config reads watchdep.yml: what no lockfile states about a part.
 //
-// The shape is schema/depwatch.schema.json. Unknown keys and wrong types stop the run with an error
+// The shape is schema/watchdep.schema.json. Unknown keys and wrong types stop the run with an error
 // that names the line, because a misspelt key silently ignored would hide a runtime from the check.
 package config
 
@@ -17,7 +17,7 @@ import (
 )
 
 // FileName is the name of the file at the root of a part.
-const FileName = "depwatch.yml"
+const FileName = "watchdep.yml"
 
 // Version is a version written as a string or a number; the literal text is kept ("3.10" stays "3.10").
 type Version string
@@ -46,7 +46,7 @@ type Hosting struct {
 	Version Version `yaml:"version"`
 }
 
-// Config is the content of depwatch.yml.
+// Config is the content of watchdep.yml.
 type Config struct {
 	Version          int                `yaml:"version"`
 	ProductionBranch string             `yaml:"production_branch"`
@@ -60,7 +60,7 @@ type Config struct {
 	Path string `yaml:"-"`
 }
 
-// Error is a problem with depwatch.yml. The CLI exits with the usage code on it.
+// Error is a problem with watchdep.yml. The CLI exits with the usage code on it.
 type Error struct {
 	Path string
 	Msg  string
@@ -68,7 +68,7 @@ type Error struct {
 
 func (e *Error) Error() string { return fmt.Sprintf("%s: %s", e.Path, e.Msg) }
 
-// Load reads depwatch.yml from the root folder. A missing file is an empty config, not an error.
+// Load reads watchdep.yml from the root folder. A missing file is an empty config, not an error.
 func Load(root string) (*Config, error) {
 	p := filepath.Join(root, FileName)
 	f, err := os.Open(p)
@@ -86,7 +86,7 @@ func Load(root string) (*Config, error) {
 	return c, nil
 }
 
-// Parse reads depwatch.yml content. name is used in error messages.
+// Parse reads watchdep.yml content. name is used in error messages.
 func Parse(r io.Reader, name string) (*Config, error) {
 	raw, err := io.ReadAll(r)
 	if err != nil {

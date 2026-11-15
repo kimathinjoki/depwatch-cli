@@ -9,7 +9,7 @@ import _ "embed"
 //go:embed inventory.schema.json
 var Inventory []byte
 
-// Config is schema/depwatch.schema.json.
+// Config is schema/watchdep.schema.json.
 //
-//go:embed depwatch.schema.json
+//go:embed watchdep.schema.json
 var Config []byte

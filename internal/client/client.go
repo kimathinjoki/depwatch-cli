@@ -1,4 +1,4 @@
-// Package client talks to a depwatch server, and keeps the tokens `depwatch login` stores.
+// Package client talks to a watchdep server, and keeps the tokens `watchdep login` stores.
 package client
 
 import (
@@ -23,14 +23,14 @@ type Credentials struct {
 
 // CredentialsPath is where logins are stored: the user's config folder, readable only by the user.
 func CredentialsPath() (string, error) {
-	if p := os.Getenv("DEPWATCH_CREDENTIALS"); p != "" {
+	if p := os.Getenv("WATCHDEP_CREDENTIALS"); p != "" {
 		return p, nil
 	}
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "depwatch", "credentials.json"), nil
+	return filepath.Join(dir, "watchdep", "credentials.json"), nil
 }
 
 // NormalizeServer trims a server URL to scheme and host and path, with no trailing slash.

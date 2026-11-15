@@ -10,10 +10,10 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
-	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 func run(t *testing.T, src *sources.Recording, args ...string) (int, string, string) {
@@ -29,7 +29,7 @@ func run(t *testing.T, src *sources.Recording, args ...string) (int, string, str
 	return code, out.String(), errb.String()
 }
 
-// depwatch version prints the version, commit and build date stamped at build time.
+// watchdep version prints the version, commit and build date stamped at build time.
 func TestVersion(t *testing.T) {
 	version.Version, version.Commit, version.Date = "1.2.3", "abc1234", "2026-11-12"
 	defer func() { version.Version, version.Commit, version.Date = "dev", "none", "unknown" }()
@@ -46,7 +46,7 @@ func TestUsageErrors(t *testing.T) {
 		if code != ExitUsage {
 			t.Errorf("%v: exit %d, want %d", args, code, ExitUsage)
 		}
-		if !strings.Contains(errOut, "depwatch:") {
+		if !strings.Contains(errOut, "watchdep:") {
 			t.Errorf("%v: no error message: %q", args, errOut)
 		}
 	}
@@ -68,9 +68,9 @@ func TestJSONEverywhere(t *testing.T) {
 	}
 }
 
-// A bad depwatch.yml stops the run with the usage code and names the line.
+// A bad watchdep.yml stops the run with the usage code and names the line.
 func TestBadConfigIsUsage(t *testing.T) {
-	dir := testutil.Tree(t, map[string]string{"depwatch.yml": "runtimez:\n  ruby: 3\n"})
+	dir := testutil.Tree(t, map[string]string{"watchdep.yml": "runtimez:\n  ruby: 3\n"})
 	code, _, errOut := run(t, nil, "inventory", dir)
 	if code != ExitUsage || !strings.Contains(errOut, "line 1") {
 		t.Fatalf("%d %q", code, errOut)
@@ -84,7 +84,7 @@ func (c *countingTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, errors.New("network call attempted")
 }
 
-// depwatch inventory: human output shows what was not read first; --json is the schema's shape; it
+// watchdep inventory: human output shows what was not read first; --json is the schema's shape; it
 // makes no network call.
 func TestInventoryCommand(t *testing.T) {
 	ct := &countingTransport{}
@@ -95,7 +95,7 @@ func TestInventoryCommand(t *testing.T) {
 	dir := testutil.CopyDir(t, "../../testdata/fixtures/monorepo")
 	testutil.Tree(t, nil)
 	writeFile(t, filepath.Join(dir, "build.sbt"), "x")
-	writeFile(t, filepath.Join(dir, "depwatch.yml"), "images:\n  - ruby:3.3.4-slim\n")
+	writeFile(t, filepath.Join(dir, "watchdep.yml"), "images:\n  - ruby:3.3.4-slim\n")
 
 	code, out, _ := run(t, nil, "inventory", dir)
 	if code != ExitIncomplete {
@@ -116,7 +116,7 @@ func TestInventoryCommand(t *testing.T) {
 		t.Fatalf("--json does not match the schema: %v", err)
 	}
 	if n := ct.n.Load(); n != 0 {
-		t.Fatalf("depwatch inventory made %d network calls", n)
+		t.Fatalf("watchdep inventory made %d network calls", n)
 	}
 }
 

@@ -28,12 +28,12 @@ func TestReferenceListsEveryVisibleCommandAndFlag(t *testing.T) {
 		}
 	}
 	walk(ref.Root)
-	for _, want := range []string{"depwatch gate", "depwatch scan", "depwatch inventory", "depwatch mirror sync", "depwatch mirror status", "depwatch fix", "depwatch check", "depwatch deployed"} {
+	for _, want := range []string{"watchdep gate", "watchdep scan", "watchdep inventory", "watchdep mirror sync", "watchdep mirror status", "watchdep fix", "watchdep check", "watchdep deployed"} {
 		if _, ok := names[want]; !ok {
 			t.Errorf("%s is missing from the reference", want)
 		}
 	}
-	for _, hidden := range []string{"depwatch reference", "depwatch help"} {
+	for _, hidden := range []string{"watchdep reference", "watchdep help"} {
 		if _, ok := names[hidden]; ok {
 			t.Errorf("%s should not be in the reference", hidden)
 		}
@@ -68,7 +68,7 @@ func TestReferenceListsEveryVisibleCommandAndFlag(t *testing.T) {
 	}
 	check([]string{})
 
-	gate := names["depwatch gate"]
+	gate := names["watchdep gate"]
 	json := false
 	for _, f := range gate.Flags {
 		if f.Name == "json" && f.Global {

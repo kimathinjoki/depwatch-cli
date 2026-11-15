@@ -1,5 +1,5 @@
 {
-  "description": "Every ranking rule as a case. The CLI (depwatch-cli/testdata/ranking_cases.json) and the server carry identical copies and both test against them. Change both together.",
+  "description": "Every ranking rule as a case. The CLI (watchdep-cli/testdata/ranking_cases.json) and the server carry identical copies and both test against them. Change both together.",
   "version": 1,
   "cases": [
     {

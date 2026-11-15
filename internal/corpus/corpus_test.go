@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/cli"
+	"github.com/kimathinjoki/watchdep-cli/internal/cli"
 )
 
 // Every case folder is listed, and every listed case exists: dropping a case fails the build.

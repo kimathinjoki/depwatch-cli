@@ -1,6 +1,6 @@
 // Package rank gives a finding its level: severe, high, medium or low, with its labels.
 //
-// Every rule is a case in testdata/ranking_cases.json. The depwatch service is tested against the
+// Every rule is a case in testdata/ranking_cases.json. The watchdep service is tested against the
 // same cases, so the CLI and the service can never rank differently.
 package rank
 

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/mirror"
+	"github.com/kimathinjoki/watchdep-cli/internal/mirror"
 )
 
 // Gap is something a source could not answer for, without failing as a whole.

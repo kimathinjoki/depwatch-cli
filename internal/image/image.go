@@ -17,9 +17,9 @@ import (
 	rpmmeta "github.com/google/osv-scalibr/extractor/filesystem/os/rpm/metadata"
 	scalibrfs "github.com/google/osv-scalibr/fs"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/discover"
-	"github.com/kimathinjoki/depwatch-cli/internal/extract"
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/discover"
+	"github.com/kimathinjoki/watchdep-cli/internal/extract"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
 )
 
 // Result is what reading one image or filesystem gave.

@@ -9,11 +9,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/match"
-	"github.com/kimathinjoki/depwatch-cli/internal/mirror"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/match"
+	"github.com/kimathinjoki/watchdep-cli/internal/mirror"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 func newMirror(env *Env) *cobra.Command {
@@ -125,7 +125,7 @@ Exit codes: 0 every ecosystem synced; 2 at least one did not.`,
 		Use:   "package --dir <dir> <ecosystem> <name>",
 		Short: "List every advisory the mirror holds for one package, whatever versions it affects",
 		Long: `List every advisory the mirror holds for one package, whatever versions it affects, withdrawn
-ones included, in id order. With --json, each advisory's full OSV entry. The depwatch server reads it to
+ones included, in id order. With --json, each advisory's full OSV entry. The watchdep server reads it to
 give an advisory's related advisories to its AI review.
 
 Exit codes: 0 answered (an unknown package is an empty list); 1 the mirror does not hold the ecosystem.`,
@@ -179,9 +179,9 @@ func newMatch(env *Env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "match --mirror <dir> --inventory <file>",
 		Short: "Answer which advisories affect each package of an inventory, from a local mirror",
-		Long: `Read an inventory file (as depwatch inventory --json writes it) and answer, from a local OSV
+		Long: `Read an inventory file (as watchdep inventory --json writes it) and answer, from a local OSV
 mirror and with no network, which advisories affect each package and OS package. The answer holds
-every advisory's entry and everything that was not checked. It does no ranking. The depwatch server
+every advisory's entry and everything that was not checked. It does no ranking. The watchdep server
 uses this command, so the CLI and the server match versions with the same rules.
 
 Exit codes: 0 complete; 2 incomplete (an ecosystem the mirror does not hold, an unreadable mirror);

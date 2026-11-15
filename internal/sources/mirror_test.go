@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/mirror"
+	"github.com/kimathinjoki/watchdep-cli/internal/mirror"
 )
 
 // mirrorAt builds a mirror holding one npm advisory, synced at the given time, with the given last error.

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/testutil"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
 )
 
 const monorepo = "../../testdata/fixtures/monorepo"
@@ -50,7 +50,7 @@ func TestMonorepoYieldsBothEcosystems(t *testing.T) {
 	}
 }
 
-// .git, node_modules and vendor are not walked, nor any folder listed under ignore in depwatch.yml.
+// .git, node_modules and vendor are not walked, nor any folder listed under ignore in watchdep.yml.
 func TestSkippedFolders(t *testing.T) {
 	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"left-pad":"1"}},"node_modules/left-pad":{"version":"1.3.0"}}}`
 	dir := testutil.Tree(t, map[string]string{
@@ -61,7 +61,7 @@ func TestSkippedFolders(t *testing.T) {
 		"vendor/y/composer.lock":           `{"packages":[{"name":"a/b","version":"1.0.0"}]}`,
 		"legacy/package-lock.json":         lock,
 		"legacy/package.json":              `{}`,
-		"depwatch.yml":                     "ignore:\n  - legacy\n",
+		"watchdep.yml":                     "ignore:\n  - legacy\n",
 	})
 	inv := take(t, dir)
 	for _, f := range inv.FilesRead {
@@ -163,7 +163,7 @@ func symlink(t *testing.T, target, link string) {
 func TestSymlinkInsideProjectIsRead(t *testing.T) {
 	dir := testutil.Tree(t, map[string]string{
 		"shared/locks/package-lock.json": npmLock,
-		"depwatch.yml":                   "ignore:\n  - shared\n",
+		"watchdep.yml":                   "ignore:\n  - shared\n",
 	})
 	if err := os.MkdirAll(filepath.Join(dir, "app"), 0o755); err != nil {
 		t.Fatal(err)
@@ -196,10 +196,10 @@ func TestSymlinkOutsideProjectIsNotRead(t *testing.T) {
 }
 
 // A folder that is a symbolic link leading outside the project is listed as not read, unless it is
-// ignored in depwatch.yml or is a folder the walk never enters.
+// ignored in watchdep.yml or is a folder the walk never enters.
 func TestSymlinkedFolderOutsideProject(t *testing.T) {
 	outside := testutil.Tree(t, map[string]string{"package-lock.json": npmLock})
-	dir := testutil.Tree(t, map[string]string{"depwatch.yml": "ignore:\n  - ignored\n"})
+	dir := testutil.Tree(t, map[string]string{"watchdep.yml": "ignore:\n  - ignored\n"})
 	symlink(t, outside, filepath.Join(dir, "linked"))
 	symlink(t, outside, filepath.Join(dir, "ignored"))
 	symlink(t, outside, filepath.Join(dir, "node_modules"))
@@ -219,7 +219,7 @@ func TestBrokenSymlinkIsNotRead(t *testing.T) {
 	}
 }
 
-// A --rootfs folder with no operating system package database in it was not a filesystem depwatch
+// A --rootfs folder with no operating system package database in it was not a filesystem watchdep
 // could check: it is listed as not read, and the run is incomplete.
 func TestRootFSWithNoPackageDatabaseIsNotRead(t *testing.T) {
 	dir := testutil.Tree(t, map[string]string{"go.mod": "module x\n\ngo 1.22\n"})

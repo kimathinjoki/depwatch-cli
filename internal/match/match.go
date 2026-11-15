@@ -22,9 +22,9 @@ import (
 
 	"github.com/google/osv-scalibr/semantic"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/inventory"
-	"github.com/kimathinjoki/depwatch-cli/internal/rank"
-	"github.com/kimathinjoki/depwatch-cli/internal/sources"
+	"github.com/kimathinjoki/watchdep-cli/internal/inventory"
+	"github.com/kimathinjoki/watchdep-cli/internal/rank"
+	"github.com/kimathinjoki/watchdep-cli/internal/sources"
 )
 
 // Lanes.
@@ -144,7 +144,7 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 	for _, eco := range sortedKeys(unknownEco) {
 		rep.NotChecked = append(rep.NotChecked, NotChecked{
 			What:       fmt.Sprintf("%d %s packages", unknownEco[eco], eco),
-			Why:        "no advisory source depwatch reads covers this ecosystem",
+			Why:        "no advisory source watchdep reads covers this ecosystem",
 			Incomplete: true,
 			Ecosystem:  eco,
 		})
@@ -163,7 +163,7 @@ func Check(ctx context.Context, inv *inventory.Inventory, src sources.Set, opt O
 		}
 		rep.NotChecked = append(rep.NotChecked, NotChecked{
 			What: "runtimes and databases: " + strings.Join(uniq(names), ", "),
-			Why:  "listed, not checked by the gate: a depwatch server checks them against NVD and endoflife.date",
+			Why:  "listed, not checked by the gate: a watchdep server checks them against NVD and endoflife.date",
 		})
 	}
 
@@ -336,7 +336,7 @@ func lookup(ctx context.Context, subjects []subject, osv sources.OSV, workers in
 }
 
 // detailsMissing marks an advisory whose entry could not be fetched.
-const detailsMissing = "depwatch_details_missing"
+const detailsMissing = "watchdep_details_missing"
 
 func missingDetails(f *Finding) bool {
 	for _, v := range f.vulns {

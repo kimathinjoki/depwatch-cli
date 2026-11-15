@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/kimathinjoki/depwatch-cli/internal/client"
-	"github.com/kimathinjoki/depwatch-cli/internal/codecheck"
-	"github.com/kimathinjoki/depwatch-cli/internal/version"
+	"github.com/kimathinjoki/watchdep-cli/internal/client"
+	"github.com/kimathinjoki/watchdep-cli/internal/codecheck"
+	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
 
 var verdictWords = map[string]string{codecheck.Used: "used", codecheck.NotUsed: "not used", codecheck.Unclear: "unclear"}
@@ -23,17 +23,17 @@ func newCheck(env *Env) *cobra.Command {
 	c := &cobra.Command{
 		Use:   "check [path]",
 		Short: "Check whether the code uses each open finding's package, and send the verdicts",
-		Long: `Fetch the part's open findings from the depwatch server, search this folder's code for imports and
+		Long: `Fetch the part's open findings from the watchdep server, search this folder's code for imports and
 calls of each affected package (and of the affected functions where the advisory names them), and send
 back a draft verdict for each: used, not used, or unclear, with a reason and evidence as file paths and
 line numbers. A verdict is a draft: it never closes a finding; a person decides.
 
 Code leaves the machine only as short snippets around the evidence, and only when the workspace's owner
 allowed snippets. With --assist, an assistant drafts the verdict from the evidence and the lines
-around it, called from this machine with your own key; the depwatch server never sees the key. Choose
+around it, called from this machine with your own key; the watchdep server never sees the key. Choose
 the provider with --provider anthropic|google|openai (else the first key set of ANTHROPIC_API_KEY,
 GEMINI_API_KEY and OPENAI_API_KEY; with none, Anthropic, which can use your Anthropic login) and the
-model with --model (defaults claude-opus-5-5 and gemini-4-carbon; OpenAI needs one named, and depwatch
+model with --model (defaults claude-opus-5-5 and gemini-4-carbon; OpenAI needs one named, and watchdep
 models --provider <p> lists them). The assistant may sharpen a verdict but never turns a found use into
 "not used", and a refusal or an error keeps the search's verdict and says why.
 
@@ -135,8 +135,8 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 			return nil
 		},
 	}
-	c.Flags().StringVar(&server, "server", "", "the depwatch server's address (default: DEPWATCH_SERVER, else the last login)")
-	c.Flags().StringVar(&token, "token", "", "the part's token (default: DEPWATCH_TOKEN, else the last login)")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the last login)")
+	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the last login)")
 	c.Flags().BoolVar(&assist, "assist", false, "have a model draft each verdict from the evidence, with your own key")
 	c.Flags().StringVar(&provider, "provider", "", "the provider --assist uses: anthropic, google or openai (default: the first key set)")
 	c.Flags().StringVar(&model, "model", "", "the model --assist uses (default claude-opus-5-5 or gemini-4-carbon; OpenAI needs one)")

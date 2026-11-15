@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-bins=$(find dist -type f \( -name depwatch -o -name depwatch.exe \) | sort)
+bins=$(find dist -type f \( -name watchdep -o -name watchdep.exe \) | sort)
 count=$(echo "$bins" | grep -c . || true)
 if [ "$count" -ne 6 ]; then
   echo "want 6 binaries, found $count:"; echo "$bins"; exit 1

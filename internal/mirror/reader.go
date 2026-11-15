@@ -166,7 +166,7 @@ func (r *Reader) Affecting(ecosystem, name, version string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Withdrawn entries are answered too, so a server can tell withdrawn from fixed; depwatch gate
+		// Withdrawn entries are answered too, so a server can tell withdrawn from fixed; watchdep gate
 		// drops them when it builds findings.
 		if Affects(en, ecosystem, name, version) {
 			ids = append(ids, en.ID)
