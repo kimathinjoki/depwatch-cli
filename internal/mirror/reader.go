@@ -176,6 +176,30 @@ func (r *Reader) Affecting(ecosystem, name, version string) ([]string, error) {
 	return ids, nil
 }
 
+// Package returns every entry the mirror holds for one package, whatever versions they affect and
+// withdrawn ones included, in id order. An ecosystem the mirror does not hold is an error.
+func (r *Reader) Package(ecosystem, name string) ([]json.RawMessage, error) {
+	base := Base(ecosystem)
+	e, err := r.load(base)
+	if err != nil {
+		return nil, err
+	}
+	var entries []*Entry
+	for _, file := range e.idx.Packages[Key(ecosystem, name)] {
+		en, err := r.entry(base, e, file)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, en)
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].ID < entries[j].ID })
+	out := make([]json.RawMessage, 0, len(entries))
+	for _, en := range entries {
+		out = append(out, en.Raw)
+	}
+	return out, nil
+}
+
 // Raw returns an advisory's full entry, from whichever ecosystem's archive holds it.
 func (r *Reader) Raw(id string) (json.RawMessage, error) {
 	r.mu.Lock()

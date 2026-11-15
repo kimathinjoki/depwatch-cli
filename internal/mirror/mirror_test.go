@@ -189,3 +189,37 @@ func TestImportArchive(t *testing.T) {
 		t.Fatalf("%v", ids)
 	}
 }
+
+func TestPackageListsEveryEntry(t *testing.T) {
+	old := entry("GHSA-old", "npm", "x", events(map[string]string{"introduced": "0"}, map[string]string{"fixed": "1.0.0"}))
+	later := entry("GHSA-new", "npm", "x", nil, "2.0.0")
+	other := entry("GHSA-y", "npm", "y", nil, "1.0.0")
+	srv, _ := serve(t, map[string][]byte{"npm": zipOf(t, map[string]any{"GHSA-old": old, "GHSA-new": later, "GHSA-y": other})})
+	dir := t.TempDir()
+	if _, err := (&Syncer{Dir: dir, BaseURL: srv.URL}).Sync(context.Background(), "npm"); err != nil {
+		t.Fatal(err)
+	}
+	r := Open(dir)
+	defer r.Close()
+	got, err := r.Package("npm", "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ids []string
+	for _, raw := range got {
+		var e struct{ ID string }
+		if err := json.Unmarshal(raw, &e); err != nil {
+			t.Fatal(err)
+		}
+		ids = append(ids, e.ID)
+	}
+	if !slices.Equal(ids, []string{"GHSA-new", "GHSA-old"}) {
+		t.Fatalf("every entry for x, whatever its versions, in id order: %v", ids)
+	}
+	if got, err := r.Package("npm", "absent"); err != nil || len(got) != 0 {
+		t.Fatalf("an unknown package is an empty list: %v %v", got, err)
+	}
+	if _, err := r.Package("PyPI", "x"); err == nil {
+		t.Fatal("an ecosystem the mirror does not hold is an error, never an empty list")
+	}
+}

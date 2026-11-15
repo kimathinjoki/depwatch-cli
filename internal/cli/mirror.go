@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -118,7 +119,51 @@ Exit codes: 0 every ecosystem synced; 2 at least one did not.`,
 		},
 	}
 	status.Flags().StringVar(&statusDir, "dir", "", "the mirror folder")
-	c.AddCommand(sync, status)
+
+	var pkgDir string
+	pkg := &cobra.Command{
+		Use:   "package --dir <dir> <ecosystem> <name>",
+		Short: "List every advisory the mirror holds for one package, whatever versions it affects",
+		Long: `List every advisory the mirror holds for one package, whatever versions it affects, withdrawn
+ones included, in id order. With --json, each advisory's full OSV entry. The depwatch server reads it to
+give an advisory's related advisories to its AI review.
+
+Exit codes: 0 answered (an unknown package is an empty list); 1 the mirror does not hold the ecosystem.`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(c *cobra.Command, args []string) error {
+			if pkgDir == "" {
+				return &usageError{msg: "mirror package needs --dir"}
+			}
+			r := mirror.Open(pkgDir)
+			defer r.Close()
+			entries, err := r.Package(args[0], args[1])
+			if err != nil {
+				return fmt.Errorf("the mirror cannot answer for %s: %w", args[0], err)
+			}
+			if jsonFlag(c) {
+				return writeJSON(env.Stdout, map[string]any{"advisories": entries})
+			}
+			if len(entries) == 0 {
+				fmt.Fprintf(env.Stdout, "The mirror holds no advisory for %s %s.\n", args[0], args[1])
+			}
+			for _, raw := range entries {
+				var e struct {
+					ID        string `json:"id"`
+					Summary   string `json:"summary"`
+					Withdrawn string `json:"withdrawn"`
+				}
+				_ = json.Unmarshal(raw, &e)
+				line := e.ID + "  " + e.Summary
+				if e.Withdrawn != "" {
+					line += "  (withdrawn)"
+				}
+				fmt.Fprintln(env.Stdout, line)
+			}
+			return nil
+		},
+	}
+	pkg.Flags().StringVar(&pkgDir, "dir", "", "the mirror folder")
+	c.AddCommand(sync, status, pkg)
 	return c
 }
 
