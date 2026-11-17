@@ -26,7 +26,7 @@ var ExitCodes = []RefExit{
 var EnvVars = []RefEnv{
 	{"WATCHDEP_SERVER", "scan, check, fix, deployed", "The watchdep server's address, instead of --server or a login."},
 	{"WATCHDEP_TOKEN", "scan, check, fix, deployed", "The part's project token, instead of --token or a login."},
-	{"WATCHDEP_CREDENTIALS", "login and every command that talks to a server", "Where login stores tokens; by default the user's config folder."},
+	{"WATCHDEP_CREDENTIALS", "login and every command that talks to a server", "Where login stores each folder's token; by default the user's config folder."},
 	{"GITHUB_TOKEN", "fix", "The repository's token, to open and update pull requests."},
 	{"GITHUB_REPOSITORY", "fix", "The repository as owner/name (set by GitHub Actions)."},
 	{"GITHUB_API_URL", "fix", "GitHub's API address; https://api.github.com by default (set by GitHub Actions)."},

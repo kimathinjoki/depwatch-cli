@@ -43,7 +43,7 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 				return err
 			}
 			root, _ = filepath.Abs(root)
-			srv, tok, err := resolveServer(env, server, token)
+			srv, tok, err := resolveServer(env, server, token, root)
 			if err != nil {
 				return err
 			}
@@ -188,8 +188,8 @@ Exit codes: 0 done; 2 the server did not answer, or a fix failed; 3 no token or 
 			return nil
 		},
 	}
-	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the last login)")
-	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the last login)")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the folder's login)")
+	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the folder's login)")
 	c.Flags().StringVar(&base, "base", "", "the branch pull requests target (default: the part's production branch)")
 	c.Flags().BoolVar(&dryRun, "dry-run", false, "make the changes, print them and put the files back; no git, no pull request")
 	return c
@@ -211,7 +211,7 @@ watchdep scan in the same step so the deployed commit has an inventory.`,
 			if sha == "" {
 				return &usageError{msg: "deployed needs --sha <commit> (or GITHUB_SHA)"}
 			}
-			srv, tok, err := resolveServer(env, server, token)
+			srv, tok, err := resolveServer(env, server, token, ".")
 			if err != nil {
 				return err
 			}

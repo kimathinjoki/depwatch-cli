@@ -45,7 +45,7 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 				return err
 			}
 			root, _ = filepath.Abs(root)
-			srv, tok, err := resolveServer(env, server, token)
+			srv, tok, err := resolveServer(env, server, token, root)
 			if err != nil {
 				return err
 			}
@@ -135,8 +135,8 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 			return nil
 		},
 	}
-	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the last login)")
-	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the last login)")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the folder's login)")
+	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the folder's login)")
 	c.Flags().BoolVar(&assist, "assist", false, "have a model draft each verdict from the evidence, with your own key")
 	c.Flags().StringVar(&provider, "provider", "", "the provider --assist uses: anthropic, google or openai (default: the first key set)")
 	c.Flags().StringVar(&model, "model", "", "the model --assist uses (default claude-opus-5-5 or gemini-4-carbon; OpenAI needs one)")

@@ -15,10 +15,36 @@ import (
 	"time"
 )
 
-// Credentials are the stored logins, one token per server.
+// Credentials are the stored logins, one per folder: a token belongs to one part, so a part's folder
+// keeps its own, and two projects on one machine never send under each other's token.
 type Credentials struct {
-	Default string            `json:"default"`
-	Servers map[string]string `json:"servers"`
+	Folders map[string]Login `json:"folders"`
+	// Servers held 0.1.0's one token per server. It is read only to say that login must be run again.
+	Servers map[string]string `json:"servers,omitempty"`
+}
+
+// Login is one folder's server and token.
+type Login struct {
+	Server string `json:"server"`
+	Token  string `json:"token"`
+}
+
+// Set stores the login for a folder and drops 0.1.0's logins, which are no longer used.
+func (c *Credentials) Set(folder string, l Login) {
+	c.Folders[folder] = l
+	c.Servers = nil
+}
+
+// For finds the login of the folder or the nearest folder above it, and that folder.
+func (c *Credentials) For(folder string) (Login, string, bool) {
+	for dir := folder; ; dir = filepath.Dir(dir) {
+		if l, ok := c.Folders[dir]; ok {
+			return l, dir, true
+		}
+		if filepath.Dir(dir) == dir {
+			return Login{}, "", false
+		}
+	}
 }
 
 // CredentialsPath is where logins are stored: the user's config folder, readable only by the user.
@@ -44,7 +70,7 @@ func LoadCredentials() (*Credentials, error) {
 	}
 	raw, err := os.ReadFile(p)
 	if errors.Is(err, os.ErrNotExist) {
-		return &Credentials{Servers: map[string]string{}}, nil
+		return &Credentials{Folders: map[string]Login{}}, nil
 	}
 	if err != nil {
 		return nil, err
@@ -53,8 +79,8 @@ func LoadCredentials() (*Credentials, error) {
 	if err := json.Unmarshal(raw, &c); err != nil {
 		return nil, fmt.Errorf("%s is unreadable: %w", p, err)
 	}
-	if c.Servers == nil {
-		c.Servers = map[string]string{}
+	if c.Folders == nil {
+		c.Folders = map[string]Login{}
 	}
 	return &c, nil
 }

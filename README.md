@@ -145,7 +145,7 @@ watchdep scan
 ```
 
 The server and token come from `--server` and `--token`, else `WATCHDEP_SERVER` and `WATCHDEP_TOKEN`,
-else the last `watchdep login`. Exit codes: `0` sent; `2` the server did not answer, or did not look (a hosted plan's scans for today are used; the server's reason is printed); `3` no token, a
+else the `watchdep login` of the folder or the nearest folder above it. Exit codes: `0` sent; `2` the server did not answer, or did not look (a hosted plan's scans for today are used; the server's reason is printed); `3` no token, a
 refused token, or an inventory the server rejected.
 
 ### `watchdep check [path]`
@@ -211,10 +211,19 @@ the pull request says plainly that the fix is not verified.
 Reports a deployment from the deploy step, so production is what was deployed. Run `watchdep scan` in
 the same step so the deployed commit has an inventory.
 
-### `watchdep login --server <url> --token <token>`
+### `watchdep login [path] --server <url> --token <token>`
 
-Stores a part's token in your config folder (`~/.config/watchdep/credentials.json` on Linux, readable
-only by you) so `scan` can use it.
+Stores a part's token for the part's folder (the path given, or the current folder) in your config
+folder (`~/.config/watchdep/credentials.json` on Linux, readable only by you). `scan`, `check`, `fix`
+and `deployed` in that folder, or a folder inside it, use it. Each part's folder needs its own login,
+so two projects on one machine never send under each other's token:
+
+```sh
+cd ~/code/shop-api    && watchdep login --server https://app.watchdep.com --token wdp_...
+cd ~/code/shop-client && watchdep login --server https://app.watchdep.com --token wdp_...
+```
+
+Logins from 0.1.0, one per server, are no longer used: run `watchdep login` again in each part's folder.
 
 ### `watchdep mirror sync` and `watchdep mirror status`
 

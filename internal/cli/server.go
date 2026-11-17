@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,34 +19,43 @@ import (
 func newLogin(env *Env) *cobra.Command {
 	var server, token string
 	c := &cobra.Command{
-		Use:   "login --server <url> --token <token>",
-		Short: "Store a part's token for a watchdep server",
-		Long: `Store the token a watchdep server created for one part, so watchdep scan can send that part's
-inventory. The token is kept in the user's config folder, readable only by the user. In CI, set
-WATCHDEP_SERVER and WATCHDEP_TOKEN instead.`,
-		Args: cobra.NoArgs,
-		RunE: func(c *cobra.Command, _ []string) error {
+		Use:   "login [path] --server <url> --token <token>",
+		Short: "Store a part's token for the part's folder",
+		Long: `Store the token a watchdep server created for one part, for the part's folder (the path given, or
+the current folder). watchdep scan, check, fix and deployed in that folder, or any folder inside it,
+use it; another folder needs its own login, so two projects never send under each other's token. A
+login replaces the folder's earlier one. The token is kept in the user's config folder, readable only
+by the user. In CI, set WATCHDEP_SERVER and WATCHDEP_TOKEN instead.`,
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(c *cobra.Command, args []string) error {
 			if server == "" || token == "" {
 				return &usageError{msg: "login needs --server and --token"}
 			}
 			if u, err := url.Parse(server); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
 				return &usageError{msg: "--server must be a URL such as https://watchdep.example.com"}
 			}
+			root, err := partRoot(args)
+			if err != nil {
+				return err
+			}
+			folder, err := loginFolder(root)
+			if err != nil {
+				return err
+			}
 			creds, err := client.LoadCredentials()
 			if err != nil {
 				return err
 			}
 			s := client.NormalizeServer(server)
-			creds.Servers[s] = token
-			creds.Default = s
+			creds.Set(folder, client.Login{Server: s, Token: token})
 			if err := creds.Save(); err != nil {
 				return err
 			}
 			p, _ := client.CredentialsPath()
 			if jsonFlag(c) {
-				return writeJSON(env.Stdout, map[string]string{"server": s, "stored_in": p})
+				return writeJSON(env.Stdout, map[string]string{"server": s, "folder": folder, "stored_in": p})
 			}
-			fmt.Fprintf(env.Stdout, "Stored the token for %s in %s.\n", s, p)
+			fmt.Fprintf(env.Stdout, "Stored the token for %s, for %s and the folders inside it, in %s.\n", s, folder, p)
 			return nil
 		},
 	}
@@ -64,7 +74,7 @@ func newScan(env *Env) *cobra.Command {
 with the part's token. Only the inventory leaves the machine; the code never does.
 
 The server and token come from --server and --token, else WATCHDEP_SERVER and WATCHDEP_TOKEN, else
-the last watchdep login.
+the watchdep login of the folder or the nearest folder above it.
 
 Exit codes: 0 sent; 2 the server did not answer, or did not look (the plan's scans for today are
 used), with its reason; 3 no token, a refused token or a rejected inventory.`,
@@ -74,7 +84,7 @@ used), with its reason; 3 no token, a refused token or a rejected inventory.`,
 			if err != nil {
 				return err
 			}
-			srv, tok, err := resolveServer(env, server, token)
+			srv, tok, err := resolveServer(env, server, token, root)
 			if err != nil {
 				return err
 			}
@@ -133,32 +143,52 @@ used), with its reason; 3 no token, a refused token or a rejected inventory.`,
 		},
 	}
 	addTakeFlags(c, &tf)
-	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the last login)")
-	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the last login)")
+	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the folder's login)")
+	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the folder's login)")
 	return c
 }
 
-func resolveServer(env *Env, server, token string) (string, string, error) {
+// loginFolder is the absolute folder with symlinks resolved, so a login made through a link matches.
+func loginFolder(folder string) (string, error) {
+	abs, err := filepath.Abs(folder)
+	if err != nil {
+		return "", err
+	}
+	if real, err := filepath.EvalSymlinks(abs); err == nil {
+		return real, nil
+	}
+	return abs, nil
+}
+
+// resolveServer finds the server and token for the part in folder: --server and --token, else
+// WATCHDEP_SERVER and WATCHDEP_TOKEN, else the login of the folder or the nearest folder above it.
+// A login for another server is not used: its token belongs to that server.
+func resolveServer(env *Env, server, token, folder string) (string, string, error) {
 	if server == "" {
 		server = env.Getenv("WATCHDEP_SERVER")
 	}
 	if token == "" {
 		token = env.Getenv("WATCHDEP_TOKEN")
 	}
-	if server == "" || token == "" {
-		creds, err := client.LoadCredentials()
-		if err != nil {
-			return "", "", err
-		}
-		if server == "" {
-			server = creds.Default
-		}
+	if server != "" && token != "" {
+		return server, token, nil
+	}
+	abs, err := loginFolder(folder)
+	if err != nil {
+		return "", "", err
+	}
+	creds, err := client.LoadCredentials()
+	if err != nil {
+		return "", "", err
+	}
+	if l, _, ok := creds.For(abs); ok && (server == "" || client.NormalizeServer(server) == l.Server) {
 		if token == "" {
-			token = creds.Servers[client.NormalizeServer(server)]
+			token = l.Token
 		}
+		return l.Server, token, nil
 	}
-	if server == "" || token == "" {
-		return "", "", &usageError{msg: "no server or token: run watchdep login, or set WATCHDEP_SERVER and WATCHDEP_TOKEN"}
+	if len(creds.Servers) > 0 {
+		return "", "", &usageError{msg: fmt.Sprintf("no login for %s: watchdep login now keeps a token per folder, so run it again in the part's folder (watchdep login --server <url> --token <token>), or set WATCHDEP_SERVER and WATCHDEP_TOKEN", abs)}
 	}
-	return server, token, nil
+	return "", "", &usageError{msg: fmt.Sprintf("no login for %s: run watchdep login --server <url> --token <token> in the part's folder, or set WATCHDEP_SERVER and WATCHDEP_TOKEN", abs)}
 }

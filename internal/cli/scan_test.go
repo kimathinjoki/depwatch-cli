@@ -121,11 +121,12 @@ func TestScanNotLookedExitsIncomplete(t *testing.T) {
 	}
 }
 
-// The stored credentials file is created with owner-only permissions, and scan uses it.
+// The stored credentials file is created with owner-only permissions, and holds the folder's login.
 func TestLoginStoresPrivately(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "watchdep", "credentials.json")
 	t.Setenv("WATCHDEP_CREDENTIALS", p)
-	if code, out, _ := run(t, nil, "login", "--server", "https://dw.example.test/", "--token", "wdp_abc"); code != 0 {
+	dir := t.TempDir()
+	if code, out, _ := run(t, nil, "login", dir, "--server", "https://dw.example.test/", "--token", "wdp_abc"); code != 0 {
 		t.Fatalf("exit %d %s", code, out)
 	}
 	st, err := os.Stat(p)
@@ -136,14 +137,71 @@ func TestLoginStoresPrivately(t *testing.T) {
 		t.Fatalf("permissions %v, want 0600", st.Mode().Perm())
 	}
 	raw, _ := os.ReadFile(p)
-	if !strings.Contains(string(raw), `"https://dw.example.test": "wdp_abc"`) {
+	if !strings.Contains(string(raw), `"token": "wdp_abc"`) || !strings.Contains(string(raw), `"server": "https://dw.example.test"`) {
 		t.Fatalf("%s", raw)
 	}
-	srv, tok, err := resolveServer(&Env{Getenv: func(string) string { return "" }}, "", "")
-	if err != nil || srv != "https://dw.example.test" || tok != "wdp_abc" {
-		t.Fatalf("%s %s %v", srv, tok, err)
-	}
-	if code, _, _ := run(t, nil, "login", "--server", "not a url", "--token", "x"); code != ExitUsage {
+	if code, _, _ := run(t, nil, "login", dir, "--server", "not a url", "--token", "x"); code != ExitUsage {
 		t.Fatalf("bad server: exit %d", code)
+	}
+	if code, _, _ := run(t, nil, "login", filepath.Join(dir, "missing"), "--server", "https://dw.example.test", "--token", "x"); code != ExitUsage {
+		t.Fatalf("missing folder: exit %d", code)
+	}
+}
+
+// Two projects on one machine keep their own tokens: each folder, and the folders inside it, use its
+// own login, the nearest one wins, and a folder with none is refused rather than sent under another's.
+func TestLoginPerFolder(t *testing.T) {
+	t.Setenv("WATCHDEP_CREDENTIALS", filepath.Join(t.TempDir(), "credentials.json"))
+	base := t.TempDir()
+	a, b, other := filepath.Join(base, "a"), filepath.Join(base, "b"), filepath.Join(base, "other")
+	inner := filepath.Join(a, "api")
+	for _, d := range []string{filepath.Join(inner, "src"), b, other} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, l := range [][]string{{a, "wdp_a"}, {b, "wdp_b"}, {inner, "wdp_api"}} {
+		if code, out, errOut := run(t, nil, "login", l[0], "--server", "https://dw.example.test", "--token", l[1]); code != 0 {
+			t.Fatalf("exit %d %s %s", code, out, errOut)
+		}
+	}
+	none := &Env{Getenv: func(string) string { return "" }}
+	for folder, want := range map[string]string{a: "wdp_a", b: "wdp_b", inner: "wdp_api", filepath.Join(inner, "src"): "wdp_api"} {
+		srv, tok, err := resolveServer(none, "", "", folder)
+		if err != nil || srv != "https://dw.example.test" || tok != want {
+			t.Fatalf("%s: %s %s %v, want %s", folder, srv, tok, err, want)
+		}
+	}
+	if _, _, err := resolveServer(none, "", "", other); err == nil || !strings.Contains(err.Error(), "no login for ") {
+		t.Fatalf("a folder with no login: %v", err)
+	}
+	if _, _, err := resolveServer(none, "https://elsewhere.test", "", a); err == nil {
+		t.Fatal("a login for another server must not be used")
+	}
+	env := &Env{Getenv: func(k string) string {
+		return map[string]string{"WATCHDEP_SERVER": "https://ci.test", "WATCHDEP_TOKEN": "wdp_env"}[k]
+	}}
+	if srv, tok, _ := resolveServer(env, "", "", a); srv != "https://ci.test" || tok != "wdp_env" {
+		t.Fatalf("the environment comes before a login: %s %s", srv, tok)
+	}
+}
+
+// A 0.1.0 login, one token per server, is not used: it could belong to any project.
+func TestOldLoginIsNotUsed(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "credentials.json")
+	t.Setenv("WATCHDEP_CREDENTIALS", p)
+	if err := os.WriteFile(p, []byte(`{"default":"https://dw.example.test","servers":{"https://dw.example.test":"wdp_old"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := resolveServer(&Env{Getenv: func(string) string { return "" }}, "", "", t.TempDir())
+	if err == nil || !strings.Contains(err.Error(), "run it again in the part's folder") {
+		t.Fatalf("%v", err)
+	}
+	dir := t.TempDir()
+	if code, _, _ := run(t, nil, "login", dir, "--server", "https://dw.example.test", "--token", "wdp_new"); code != 0 {
+		t.Fatal("login")
+	}
+	if raw, _ := os.ReadFile(p); strings.Contains(string(raw), "wdp_old") {
+		t.Fatalf("the old login is dropped on the next login: %s", raw)
 	}
 }
