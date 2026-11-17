@@ -294,9 +294,22 @@ ignore:
   - docs/
 ```
 
-Runtimes also come from `.ruby-version`, `.nvmrc`, `.node-version`, `.python-version` and
-`.tool-versions`. When `watchdep.yml` and a version file in the same folder disagree, both are listed
-and the output says they disagree. The gate lists runtimes without checking them (the output says so);
+Runtimes and databases also come from where projects already state them:
+
+- version files: `.ruby-version`, `.nvmrc`, `.node-version`, `.python-version`, `.tool-versions`,
+  `mise.toml`, `.java-version`, `.sdkmanrc`, `runtime.txt`, `rust-toolchain(.toml)`, `global.json`;
+- manifests and build files: `package.json` `engines.node`, `pyproject.toml` `requires-python` (or
+  Poetry's `python`), `Pipfile`, `go.mod` (`toolchain`, else `go`), `composer.json` (`config.platform.php`,
+  else `require.php`), the `Gemfile`'s `ruby`, and Java's release in `pom.xml` and Gradle builds;
+- images: the final stage of each Dockerfile (`FROM node:16-bullseye` is node 16; a build stage does
+  not ship, so it is not listed), the images in `watchdep.yml`, and each service's `image` in Compose
+  files (`postgres:12` is postgres 12). Official images, the common Java builds (Temurin, Corretto,
+  OpenJDK), .NET, distroless and Bitnami images are known.
+
+A range names the release it is confined to (`^18.2.0` is 18, `~> 3.3.0` is 3.3, `16.x` is 16); an
+open-ended one such as `>=16` names none, as production could run any version it allows. A Node LTS
+codename (`lts/iron`) is its major release. When two sources in the same folder name different
+releases, both are listed and the output says they disagree; `16` and `16.20.0` agree. The gate lists runtimes without checking them (the output says so);
 a watchdep server checks them against NVD and endoflife.date.
 
 ## In CI

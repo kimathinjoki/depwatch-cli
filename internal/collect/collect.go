@@ -90,16 +90,39 @@ func Take(ctx context.Context, o Options) (*inventory.Inventory, *config.Config,
 	inv.Unpinned = res.Unpinned
 	inv.Packages = packages(fsys, res)
 
-	// Runtimes from version files and watchdep.yml.
+	// Runtimes from version files, manifests and build files, the images Dockerfiles and Compose files
+	// run, and watchdep.yml.
 	var fromFiles []inventory.Runtime
 	for _, f := range files {
-		if config.VersionFiles[path.Base(f.Path)] {
-			raw, err := fs.ReadFile(fsys, f.Path)
-			if err != nil {
+		dockerfile := image.IsDockerfile(f.Path)
+		if !dockerfile && !config.IsRuntimeFile(f.Path) {
+			continue
+		}
+		raw, err := fs.ReadFile(fsys, f.Path)
+		if err != nil {
+			if !dockerfile { // a Dockerfile that cannot be read is reported with the base images
 				inv.FilesNotRead = append(inv.FilesNotRead, inventory.FileNotRead{Path: f.Path, Reason: err.Error()})
-				continue
 			}
+			continue
+		}
+		switch {
+		case dockerfile:
+			// The final stage's base image is what runs; earlier stages are build time only.
+			if b, ok := image.FinalBase(string(raw)); ok && b.Unresolved == "" {
+				if r, ok := config.RuntimeFromImage(b.Reference, f.Path); ok {
+					fromFiles = append(fromFiles, r)
+				}
+			}
+		case config.IsComposeFile(f.Path):
+			rts, ok := config.ReadCompose(f.Path, raw)
+			if !ok {
+				inv.FilesNotRead = append(inv.FilesNotRead, inventory.FileNotRead{Path: f.Path, Reason: "not a Compose file: it is not valid YAML"})
+			}
+			fromFiles = append(fromFiles, rts...)
+		case config.VersionFiles[path.Base(f.Path)]:
 			fromFiles = append(fromFiles, config.ReadVersionFile(f.Path, raw)...)
+		default:
+			fromFiles = append(fromFiles, config.ReadManifest(f.Path, raw)...)
 		}
 	}
 	fromConfig := cfg.FromConfig()
@@ -175,7 +198,7 @@ func splitLinks(walked []discover.File) ([]discover.File, []inventory.FileNotRea
 		if f.Info != nil {
 			size = f.Info.Size()
 		}
-		if f.Dir || extract.Wants(f.Path, size) || image.IsDockerfile(f.Path) || config.VersionFiles[path.Base(f.Path)] {
+		if f.Dir || extract.Wants(f.Path, size) || image.IsDockerfile(f.Path) || config.IsRuntimeFile(f.Path) {
 			notRead = append(notRead, inventory.FileNotRead{Path: f.Path, Reason: f.NotFollowed})
 		}
 	}

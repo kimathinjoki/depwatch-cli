@@ -125,12 +125,12 @@ func TestWantedSkipsInstalledAndIgnoredFolders(t *testing.T) {
 	cfg := filepath.Join(t.TempDir(), "watchdep.yml")
 	_ = os.WriteFile(cfg, []byte("ignore:\n  - legacy\n"), 0o644)
 	var out bytes.Buffer
-	in := "package-lock.json 10\nnode_modules/a/package-lock.json 10\nvendor/b/composer.lock 5\nlegacy/Gemfile.lock 9\nweb/yarn.lock 4\nREADME.md 3\n.nvmrc 2\nDockerfile 9\n"
+	in := "package-lock.json 10\nnode_modules/a/package-lock.json 10\nvendor/b/composer.lock 5\nlegacy/Gemfile.lock 9\nweb/yarn.lock 4\nREADME.md 3\n.nvmrc 2\nDockerfile 9\ndocker-compose.yml 7\n"
 	if code := Run([]string{"wanted", "--config", cfg}, Env{Stdout: &out, Stderr: &out, Stdin: strings.NewReader(in)}); code != 0 {
 		t.Fatalf("exit %d %s", code, out.String())
 	}
 	got := strings.Fields(out.String())
-	want := []string{".nvmrc", "Dockerfile", "package-lock.json", "web/yarn.lock"}
+	want := []string{".nvmrc", "Dockerfile", "docker-compose.yml", "package-lock.json", "web/yarn.lock"}
 	if strings.Join(got, ",") != strings.Join(want, ",") {
 		t.Fatalf("%v, want %v", got, want)
 	}

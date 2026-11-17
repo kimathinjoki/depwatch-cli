@@ -251,3 +251,47 @@ func TestRootFSDoesNotHideBaseImages(t *testing.T) {
 		t.Fatal("the root filesystem was not read")
 	}
 }
+
+// The runtime a Dockerfile's final stage runs, and the databases a Compose file runs, are listed
+// with the file that names them; a build stage's image is not.
+func TestImagesNameRuntimes(t *testing.T) {
+	dir := testutil.Tree(t, map[string]string{
+		"Dockerfile":         "FROM golang:1.22 AS build\nRUN go build\nFROM node:16-bullseye\nCOPY --from=build /app /app\n",
+		"docker-compose.yml": "services:\n  db:\n    image: postgres:12\n  app:\n    build: .\n",
+		".nvmrc":             "16.20.0\n",
+	})
+	inv := take(t, dir)
+	got := map[string]string{}
+	for _, r := range inv.Runtimes {
+		got[r.Kind+" "+r.Name+" "+r.SourceFile] = r.Version
+	}
+	if got["runtime node Dockerfile"] != "16" || got["database postgres docker-compose.yml"] != "12" || got["runtime node .nvmrc"] != "16.20.0" {
+		t.Fatalf("%v", got)
+	}
+	for k := range got {
+		if strings.Contains(k, " go ") {
+			t.Fatalf("a build stage's image does not run: %v", got)
+		}
+	}
+	if len(inv.Conflicts) != 0 {
+		t.Fatalf("16 and 16.20.0 agree: %+v", inv.Conflicts)
+	}
+}
+
+// A Compose file that is not YAML is listed as not read.
+func TestBrokenComposeIsNotRead(t *testing.T) {
+	inv := take(t, testutil.Tree(t, map[string]string{"compose.yaml": "services: [unclosed\n"}))
+	if len(inv.FilesNotRead) != 1 || inv.FilesNotRead[0].Path != "compose.yaml" {
+		t.Fatalf("%+v", inv.FilesNotRead)
+	}
+}
+
+// A Java project's build file names its runtime.
+func TestBuildFileNamesJava(t *testing.T) {
+	inv := take(t, testutil.Tree(t, map[string]string{
+		"pom.xml": "<project><modelVersion>4.0.0</modelVersion><groupId>x</groupId><artifactId>y</artifactId><version>1</version><properties><java.version>11</java.version></properties></project>",
+	}))
+	if len(inv.Runtimes) != 1 || inv.Runtimes[0].Name != "java" || inv.Runtimes[0].Version != "11" || inv.Runtimes[0].SourceFile != "pom.xml" {
+		t.Fatalf("%+v", inv.Runtimes)
+	}
+}

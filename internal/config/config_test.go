@@ -36,8 +36,8 @@ func TestVersionFiles(t *testing.T) {
 	if len(rs) != 3 || rs[1].Name != "node" || rs[2].Kind != inventory.KindDatabase || rs[2].Name != "postgres" {
 		t.Fatalf(".tool-versions: %+v", rs)
 	}
-	if rs := ReadVersionFile(".nvmrc", []byte("lts/iron\n")); rs[0].Version != "lts/iron" {
-		t.Fatalf("an alias is listed as written, never resolved: %+v", rs)
+	if rs := ReadVersionFile(".nvmrc", []byte("lts/*\n")); rs[0].Version != "lts/*" {
+		t.Fatalf("a moving alias is listed as written, never resolved: %+v", rs)
 	}
 }
 

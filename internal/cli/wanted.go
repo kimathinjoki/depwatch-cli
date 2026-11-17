@@ -63,7 +63,7 @@ route give the same inventory. With --config, folders the given watchdep.yml ign
 					continue
 				}
 				base := path.Base(p)
-				if base == config.FileName || config.VersionFiles[base] || image.IsDockerfile(p) || extract.Wants(p, size) {
+				if base == config.FileName || config.IsRuntimeFile(p) || image.IsDockerfile(p) || extract.Wants(p, size) {
 					out = append(out, p)
 				}
 			}
