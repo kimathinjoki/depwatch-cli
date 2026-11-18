@@ -22,7 +22,7 @@ checksums file, on the [releases page](https://github.com/kimathinjoki/watchdep-
 Download the archive for your platform and `checksums.txt`, check it and put `watchdep` on your path:
 
 ```sh
-v=0.1.0
+v=0.3.0
 curl -fsSLO "https://github.com/kimathinjoki/watchdep-cli/releases/download/v$v/watchdep_${v}_linux_amd64.tar.gz"
 curl -fsSLO "https://github.com/kimathinjoki/watchdep-cli/releases/download/v$v/checksums.txt"
 sha256sum --check --ignore-missing checksums.txt
@@ -325,9 +325,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build the image
         run: docker build -t app:ci . && docker save app:ci -o app.tar
-      - uses: kimathinjoki/watchdep-action@18cbad45072956cbc9c9442b8dffe9e315934499   # v1, pinned by commit SHA
+      - uses: kimathinjoki/watchdep-action@65e91e5a703f944e8c027a3af5333cf63b6fdefe   # v1.1.0, pinned by commit SHA
         with:
-          version: 0.1.0
+          version: 0.3.0
           command: gate
           args: --image app.tar --fail-on malicious,kev,severe
 ```
