@@ -17,9 +17,22 @@ is shown, and makes the run incomplete, with its own exit code.
 
 ## Install
 
-Releases are one static binary per platform (Linux, macOS and Windows, on amd64 and arm64), with a
-checksums file, on the [releases page](https://github.com/kimathinjoki/watchdep-cli/releases).
-Download the archive for your platform and `checksums.txt`, check it and put `watchdep` on your path:
+One command. It downloads the release for your system and its `checksums.txt`, checks the SHA-256,
+and installs `watchdep` (in `~/.local/bin`, or `%LOCALAPPDATA%\Programs\watchdep` on Windows); a
+mismatch installs nothing, and it never asks for administrator rights.
+
+```sh
+curl -fsSL https://watchdep.com/install.sh | sh        # macOS and Linux
+```
+
+```powershell
+irm https://watchdep.com/install.ps1 | iex             # Windows, in PowerShell
+```
+
+Or by hand: releases are one static binary per platform (Linux, macOS and Windows, on amd64 and
+arm64), with a checksums file, on the [releases page](https://github.com/kimathinjoki/watchdep-cli/releases).
+Download the archive for your platform and `checksums.txt`, check it and put `watchdep` on your path
+(on a Mac, download in a terminal: macOS refuses to open a binary a browser downloaded):
 
 ```sh
 v=0.3.0
