@@ -192,7 +192,25 @@ choose, from this machine with your own key; the watchdep server never sees the 
 | `google` | `GEMINI_API_KEY` | `gemini-4-carbon` |
 | `openai` | `OPENAI_API_KEY` | none: name one (`watchdep models --provider openai`) |
 
-Without `--provider`, the first key set in that order chooses. The assistant may sharpen a verdict and
+Without `--provider`, the first provider with a key, in that order, chooses.
+
+### `watchdep keys`
+
+Saves an AI key once, so `check --assist` and `models` find it in every terminal without an
+environment variable. The key goes into your system's own store (the macOS Keychain, Windows Credential
+Manager, or your keyring on Linux), never into a file of watchdep's, and never to the watchdep server.
+
+```sh
+watchdep keys set anthropic     # asks for the key without showing it (or pipe it in)
+watchdep keys set google
+watchdep keys list              # which providers have a key, and where from; never the key
+watchdep keys remove anthropic
+```
+
+A key in the environment wins over a saved one, so CI, which sets the variables, is unchanged. On a
+Linux machine with no keyring (a server, a container), set the environment variable instead.
+
+The assistant may sharpen a verdict and
 its reason, but never turns a found use into "not used"; a refusal, an error or an answer in the wrong
 form keeps the search's verdict and says why. Google and OpenAI are asked to keep no copy of the
 request.

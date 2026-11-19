@@ -31,8 +31,9 @@ line numbers. A verdict is a draft: it never closes a finding; a person decides.
 Code leaves the machine only as short snippets around the evidence, and only when the workspace's owner
 allowed snippets. With --assist, an assistant drafts the verdict from the evidence and the lines
 around it, called from this machine with your own key; the watchdep server never sees the key. Choose
-the provider with --provider anthropic|google|openai (else the first key set of ANTHROPIC_API_KEY,
-GEMINI_API_KEY and OPENAI_API_KEY; with none, Anthropic, which can use your Anthropic login) and the
+the provider with --provider anthropic|google|openai (else the first with a key: ANTHROPIC_API_KEY,
+GEMINI_API_KEY or OPENAI_API_KEY in the environment, or one saved once with watchdep keys set; with
+none, Anthropic, which can use your Anthropic login) and the
 model with --model (defaults claude-opus-5-5 and gemini-4-carbon; OpenAI needs one named, and watchdep
 models --provider <p> lists them). The assistant may sharpen a verdict but never turns a found use into
 "not used", and a refusal or an error keeps the search's verdict and says why.
@@ -62,7 +63,7 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 			}
 			var assistant *codecheck.Assistant
 			if assist {
-				name, err := codecheck.ChooseProvider(provider, env.Getenv)
+				name, err := codecheck.ChooseProvider(provider, providerEnv(env))
 				if err != nil {
 					return &usageError{msg: err.Error()}
 				}
@@ -70,7 +71,7 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 				if err != nil {
 					return &usageError{msg: err.Error()}
 				}
-				p, err := codecheck.NewProvider(ctx, name, assistURL, env.Getenv)
+				p, err := codecheck.NewProvider(ctx, name, assistURL, providerEnv(env))
 				if err != nil {
 					return &usageError{msg: "--assist with " + name + ": " + err.Error()}
 				}

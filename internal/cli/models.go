@@ -16,8 +16,8 @@ func newModels(env *Env) *cobra.Command {
 		Use:   "models --provider anthropic|google|openai",
 		Short: "List a provider's current models that check --assist can use",
 		Long: `List the provider's current models that can answer in a schema, as check --assist needs, asked of the
-provider with your key from the environment (ANTHROPIC_API_KEY or your Anthropic login, GEMINI_API_KEY,
-OPENAI_API_KEY). Anthropic says which models support structured output; Google's and OpenAI's lists do
+provider with your key: from the environment (ANTHROPIC_API_KEY or your Anthropic login, GEMINI_API_KEY,
+OPENAI_API_KEY), else the one saved with watchdep keys set. Anthropic says which models support structured output; Google's and OpenAI's lists do
 not, so those are their Gemini models that think and their gpt models.
 
 Exit codes: 0 listed; 2 the provider did not answer; 3 no provider named or no key.`,
@@ -26,13 +26,13 @@ Exit codes: 0 listed; 2 the provider did not answer; 3 no provider named or no k
 			if provider == "" {
 				return &usageError{msg: "models needs --provider anthropic, google or openai"}
 			}
-			name, err := codecheck.ChooseProvider(provider, env.Getenv)
+			name, err := codecheck.ChooseProvider(provider, providerEnv(env))
 			if err != nil {
 				return &usageError{msg: err.Error()}
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
-			p, err := codecheck.NewProvider(ctx, name, baseURL, env.Getenv)
+			p, err := codecheck.NewProvider(ctx, name, baseURL, providerEnv(env))
 			if err != nil {
 				return &usageError{msg: err.Error()}
 			}

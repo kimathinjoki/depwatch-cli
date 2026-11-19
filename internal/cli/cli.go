@@ -14,6 +14,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/kimathinjoki/watchdep-cli/internal/config"
+	"github.com/kimathinjoki/watchdep-cli/internal/keys"
 	"github.com/kimathinjoki/watchdep-cli/internal/sources"
 	"github.com/kimathinjoki/watchdep-cli/internal/version"
 )
@@ -38,6 +39,9 @@ type Env struct {
 	HTTP *http.Client
 	// Stdin feeds commands that read a listing.
 	Stdin io.Reader
+	// Keys holds the AI keys watchdep keys saves; the real program uses the system's store, and a nil
+	// one is an empty store, so tests never touch it.
+	Keys keys.Store
 }
 
 // usageError is a problem with the command line or watchdep.yml.
@@ -56,13 +60,16 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	if f, ok := stdout.(*os.File); ok && term.IsTerminal(int(f.Fd())) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" {
 		color = true
 	}
-	return Run(args, Env{Stdout: stdout, Stderr: stderr, Color: color, Getenv: os.Getenv, Stdin: os.Stdin})
+	return Run(args, Env{Stdout: stdout, Stderr: stderr, Color: color, Getenv: os.Getenv, Stdin: os.Stdin, Keys: keys.System{}})
 }
 
 // Run runs the command line and returns the exit code.
 func Run(args []string, env Env) int {
 	if env.Getenv == nil {
 		env.Getenv = func(string) string { return "" }
+	}
+	if env.Keys == nil {
+		env.Keys = keys.Memory{}
 	}
 	root := newRoot(&env)
 	root.SetArgs(args)
@@ -169,7 +176,7 @@ run incomplete.`,
 	}
 	root.PersistentFlags().Bool("json", false, "write all output as JSON")
 	root.SetFlagErrorFunc(func(c *cobra.Command, err error) error { return err })
-	root.AddCommand(newVersion(env), newInventory(env), newGate(env), newScan(env), newLogin(env), newMirror(env), newMatch(env), newWanted(env), newCheck(env), newModels(env), newFix(env), newDeployed(env), newReference(env))
+	root.AddCommand(newVersion(env), newInventory(env), newGate(env), newScan(env), newLogin(env), newMirror(env), newMatch(env), newWanted(env), newCheck(env), newModels(env), newKeys(env), newFix(env), newDeployed(env), newReference(env))
 	root.CompletionOptions.DisableDefaultCmd = true
 	return root
 }
