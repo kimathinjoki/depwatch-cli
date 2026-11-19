@@ -52,6 +52,30 @@ make build            # writes bin/watchdep
 ./bin/watchdep version
 ```
 
+
+## The menu
+
+Run `watchdep` on its own in a terminal for a menu of what it can do; choose with the arrow keys:
+
+```
+watchdep, in ~/code/shop
+┃ What do you want to do?
+┃ > Check this folder now (no account needed)
+┃   Send this folder to watchdep, and see its findings
+┃   Log in this folder with a part's token
+┃   Check whether the code uses the vulnerable packages
+┃   Set up AI keys
+┃   List what this folder contains
+┃   Quit
+```
+
+Each choice runs the same command you could type (`gate`, `scan`, `login`, `check`, `keys`,
+`inventory`), asking first for what it needs: a token to log in with, or whether to use an AI model.
+`watchdep keys` on its own opens the AI keys menu: choose a provider, paste its key (checked with the
+provider before it is saved), choose a model from the provider's list, and whether `check --assist`
+uses them by default. Outside a terminal (a script, CI) both print their help as before. With
+`ACCESSIBLE` set, each question is a plain numbered prompt instead, for a screen reader.
+
 ## Commands
 
 ### `watchdep inventory [path]`
@@ -197,7 +221,8 @@ Without `--provider`, the first provider with a key, in that order, chooses.
 ### `watchdep keys`
 
 Saves an AI key once, so `check --assist` and `models` find it in every terminal without an
-environment variable. The key goes into your system's own store (the macOS Keychain, Windows Credential
+environment variable. On its own in a terminal, `watchdep keys` walks through it as a menu (above);
+the subcommands do the same from a script. The key goes into your system's own store (the macOS Keychain, Windows Credential
 Manager, or your keyring on Linux), never into a file of watchdep's, and never to the watchdep server.
 
 ```sh

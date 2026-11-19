@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
+	"github.com/kimathinjoki/watchdep-cli/internal/client"
 	"github.com/kimathinjoki/watchdep-cli/internal/codecheck"
 	"github.com/kimathinjoki/watchdep-cli/internal/keys"
 )
@@ -24,8 +26,22 @@ func newKeys(env *Env) *cobra.Command {
 Manager, or your keyring on Linux), so check --assist and models find it in every terminal without an
 environment variable. The key never goes to the watchdep server, and watchdep never writes it to a file
 of its own. A key in the environment (ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY) wins over a
-saved one, so CI is unchanged.`,
+saved one, so CI is unchanged.
+
+On its own in a terminal, watchdep keys walks through it: choose a provider, paste its key, see it
+checked with the provider, choose a model, and whether check --assist uses them by default.`,
 		Args: cobra.NoArgs,
+		// On its own in a terminal, a menu: set up a provider, remove a key, see what is set up.
+		RunE: func(c *cobra.Command, _ []string) error {
+			if env.Interactive {
+				err := keysMenu(env)
+				if errors.Is(err, errQuit) {
+					return nil
+				}
+				return err
+			}
+			return c.Help()
+		},
 	}
 	c.AddCommand(newKeysSet(env), newKeysList(env), newKeysRemove(env))
 	return c
@@ -147,4 +163,29 @@ func providerEnv(env *Env) func(string) string {
 		}
 		return ""
 	}
+}
+
+// prefsDir is where the assist preference is kept: beside the logins.
+func prefsDir() string {
+	p, err := client.CredentialsPath()
+	if err != nil {
+		return ""
+	}
+	return filepath.Dir(p)
+}
+
+// assistDefaults fills the provider and model check --assist uses from the preference saved in the
+// keys menu, when neither flag names one and the preferred provider has a key.
+func assistDefaults(env *Env, provider, model string) (string, string) {
+	if provider != "" {
+		return provider, model
+	}
+	prefs, err := keys.LoadPrefs(prefsDir())
+	if err != nil || prefs.Provider == "" || providerEnv(env)(codecheck.KeyEnv[prefs.Provider]) == "" {
+		return provider, model
+	}
+	if model == "" {
+		model = prefs.Model
+	}
+	return prefs.Provider, model
 }

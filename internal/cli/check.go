@@ -63,6 +63,7 @@ Exit codes: 0 sent; 2 the server did not answer; 3 no token, a refused token, or
 			}
 			var assistant *codecheck.Assistant
 			if assist {
+				provider, model = assistDefaults(env, provider, model)
 				name, err := codecheck.ChooseProvider(provider, providerEnv(env))
 				if err != nil {
 					return &usageError{msg: err.Error()}

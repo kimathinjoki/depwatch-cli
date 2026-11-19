@@ -39,6 +39,12 @@ type Env struct {
 	HTTP *http.Client
 	// Stdin feeds commands that read a listing.
 	Stdin io.Reader
+	// Interactive is true in a terminal: watchdep and watchdep keys on their own then open their menus.
+	Interactive bool
+	// Accessible asks each menu question as a plain numbered prompt (ACCESSIBLE set, and tests).
+	Accessible bool
+	// AssistURL points the AI providers elsewhere (tests).
+	AssistURL string
 	// Keys holds the AI keys watchdep keys saves; the real program uses the system's store, and a nil
 	// one is an empty store, so tests never touch it.
 	Keys keys.Store
@@ -60,7 +66,8 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	if f, ok := stdout.(*os.File); ok && term.IsTerminal(int(f.Fd())) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" {
 		color = true
 	}
-	return Run(args, Env{Stdout: stdout, Stderr: stderr, Color: color, Getenv: os.Getenv, Stdin: os.Stdin, Keys: keys.System{}})
+	return Run(args, Env{Stdout: stdout, Stderr: stderr, Color: color, Getenv: os.Getenv, Stdin: os.Stdin, Keys: keys.System{},
+		Interactive: term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stdout.Fd())), Accessible: os.Getenv("ACCESSIBLE") != ""})
 }
 
 // Run runs the command line and returns the exit code.
@@ -166,13 +173,21 @@ func newRoot(env *Env) *cobra.Command {
 		Short: "Watch every layer of a project's dependencies for known vulnerabilities and compromised releases",
 		Long: `watchdep takes the inventory of a project (every package at every depth, runtimes, and the
 operating system packages of its images) and checks it for known vulnerabilities and compromised
-releases.
+releases. Run watchdep on its own in a terminal for a menu of what it can do.
 
 Nothing reads as clean when watchdep did not look: a file it could not read, an ecosystem it does
 not support, an image it could not pull or a source that did not answer is shown, and makes the
 run incomplete.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		// On its own in a terminal, a menu of what watchdep can do; otherwise this help.
+		Args: cobra.NoArgs,
+		RunE: func(c *cobra.Command, _ []string) error {
+			if env.Interactive {
+				return runMenu(env)
+			}
+			return c.Help()
+		},
 	}
 	root.PersistentFlags().Bool("json", false, "write all output as JSON")
 	root.SetFlagErrorFunc(func(c *cobra.Command, err error) error { return err })
