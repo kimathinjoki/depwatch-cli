@@ -217,6 +217,51 @@ func (c *Client) GetFindings(ctx context.Context) (*FindingsResponse, error) {
 	return &out, nil
 }
 
+// InventoryState is whether the server has checked an inventory and built its findings.
+type InventoryState struct {
+	ID         int64 `json:"id"`
+	Found      bool  `json:"found"`
+	Ready      bool  `json:"ready"`
+	Complete   bool  `json:"complete"`
+	Production bool  `json:"production"`
+}
+
+// ServerFinding is one of a part's open findings, as the server ranked it.
+type ServerFinding struct {
+	ID        int64         `json:"id"`
+	PrimaryID string        `json:"primary_id"`
+	Summary   string        `json:"summary"`
+	Level     string        `json:"level"`
+	Kind      string        `json:"kind"`
+	URL       string        `json:"url"`
+	Places    []ServerPlace `json:"places"`
+}
+
+// ServerPlace is where a finding appears, with the version to move to.
+type ServerPlace struct {
+	Kind      string `json:"kind"`
+	Ecosystem string `json:"ecosystem"`
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	Fix       string `json:"fix"`
+}
+
+// ScanFindings is the part's open findings, and the state of the inventory asked about. Inventory is
+// nil from a server that does not report it.
+type ScanFindings struct {
+	Inventory *InventoryState `json:"inventory"`
+	Findings  []ServerFinding `json:"findings"`
+}
+
+// GetScanFindings fetches the part's open findings and whether inventory id's are built yet.
+func (c *Client) GetScanFindings(ctx context.Context, id int64) (*ScanFindings, error) {
+	var out ScanFindings
+	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/findings?inventory=%d", id), nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // PostCodeChecks sends the code check's results.
 func (c *Client) PostCodeChecks(ctx context.Context, body any) (map[string]any, error) {
 	raw, err := json.Marshal(body)

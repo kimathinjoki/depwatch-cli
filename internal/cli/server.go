@@ -5,8 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -67,6 +70,7 @@ by the user. In CI, set WATCHDEP_SERVER and WATCHDEP_TOKEN instead.`,
 func newScan(env *Env) *cobra.Command {
 	var tf takeFlags
 	var server, token string
+	var wait time.Duration
 	c := &cobra.Command{
 		Use:   "scan [path]",
 		Short: "Send the project's inventory to a watchdep server",
@@ -75,6 +79,10 @@ with the part's token. Only the inventory leaves the machine; the code never doe
 
 The server and token come from --server and --token, else WATCHDEP_SERVER and WATCHDEP_TOKEN, else
 the watchdep login of the folder or the nearest folder above it.
+
+For a production inventory it then waits, up to --wait (90s), for the server to check it, and prints
+the part's open findings, most urgent first, with the version to move to. --wait 0 only sends, as
+scan does by default in CI (when CI is set).
 
 Exit codes: 0 sent; 2 the server did not answer, or did not look (the plan's scans for today are
 used), with its reason; 3 no token, a refused token or a rejected inventory.`,
@@ -122,9 +130,24 @@ used), with its reason; 3 no token, a refused token or a rejected inventory.`,
 			case err != nil:
 				return err
 			}
-			if jsonFlag(c) {
-				return writeJSON(env.Stdout, resp)
+			// In CI (CI set, as GitHub Actions and most others do) no one reads the wait, so it only sends
+			// unless --wait is given.
+			if !c.Flags().Changed("wait") && env.Getenv("CI") != "" {
+				wait = 0
 			}
+			var found *client.ScanFindings
+			if resp.Production && resp.InventoryID > 0 && wait > 0 {
+				found = waitForFindings(cl, resp.InventoryID, wait)
+			}
+			if jsonFlag(c) {
+				out := map[string]any{"part": resp.Part, "application": resp.Application, "inventory_id": resp.InventoryID,
+					"production": resp.Production, "url": resp.URL, "message": resp.Message, "checked": found != nil}
+				if found != nil {
+					out["findings"] = found.Findings
+				}
+				return writeJSON(env.Stdout, out)
+			}
+			st := style{on: env.Color}
 			where := "a branch other than production: stored and checked, no findings raised on the application"
 			if resp.Production {
 				where = "production"
@@ -133,11 +156,17 @@ used), with its reason; 3 no token, a refused token or a rejected inventory.`,
 			if resp.Message != "" {
 				fmt.Fprintln(env.Stdout, resp.Message)
 			}
+			if !inv.Complete() {
+				fmt.Fprintln(env.Stdout, st.deepOrange("The inventory is incomplete; the server shows what could not be read."))
+			}
+			switch {
+			case found != nil:
+				printScanFindings(env.Stdout, st, found)
+			case resp.Production && resp.InventoryID > 0 && wait > 0:
+				fmt.Fprintf(env.Stdout, "The server is still checking it after %s; the findings will be on the page below.\n", wait.Round(time.Second))
+			}
 			if resp.URL != "" {
 				fmt.Fprintln(env.Stdout, resp.URL)
-			}
-			if !inv.Complete() {
-				fmt.Fprintln(env.Stdout, style{on: env.Color}.deepOrange("The inventory is incomplete; the server shows what could not be read."))
 			}
 			return nil
 		},
@@ -145,7 +174,87 @@ used), with its reason; 3 no token, a refused token or a rejected inventory.`,
 	addTakeFlags(c, &tf)
 	c.Flags().StringVar(&server, "server", "", "the watchdep server's address (default: WATCHDEP_SERVER, else the folder's login)")
 	c.Flags().StringVar(&token, "token", "", "the part's token (default: WATCHDEP_TOKEN, else the folder's login)")
+	c.Flags().DurationVar(&wait, "wait", 90*time.Second, "how long to wait for the server's check before printing the findings (0: only send)")
 	return c
+}
+
+// scanPoll is how often scan asks whether the server has checked the inventory.
+var scanPoll = 2 * time.Second
+
+// waitForFindings asks the server until it has built the findings from inventory id, for at most
+// wait. Nil when it has not by then, when the server does not say (an older server), or when asking
+// fails: the inventory is sent either way, and the page has the findings.
+func waitForFindings(cl *client.Client, id int64, wait time.Duration) *client.ScanFindings {
+	deadline := time.Now().Add(wait)
+	for {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		f, err := cl.GetScanFindings(ctx, id)
+		cancel()
+		if err != nil || f.Inventory == nil || !f.Inventory.Found {
+			return nil
+		}
+		if f.Inventory.Ready {
+			return f
+		}
+		if time.Now().Add(scanPoll).After(deadline) {
+			return nil
+		}
+		time.Sleep(scanPoll)
+	}
+}
+
+var levelOrder = map[string]int{"severe": 0, "high": 1, "medium": 2, "low": 3}
+
+// printScanFindings prints the part's open findings as the server ranked them, most urgent first.
+func printScanFindings(w io.Writer, st style, f *client.ScanFindings) {
+	if !f.Inventory.Complete {
+		fmt.Fprintln(w, st.deepOrange("The check could not look at everything: the page below says what is missing. This is not a clean result."))
+	}
+	if len(f.Findings) == 0 {
+		if f.Inventory.Complete {
+			fmt.Fprintln(w, st.green("Checked: no open findings."))
+		}
+		return
+	}
+	list := append([]client.ServerFinding(nil), f.Findings...)
+	sort.SliceStable(list, func(i, j int) bool {
+		a, b := levelOrder[list[i].Level], levelOrder[list[j].Level]
+		if a != b {
+			return a < b
+		}
+		return list[i].PrimaryID < list[j].PrimaryID
+	})
+	counts := map[string]int{}
+	for _, x := range list {
+		counts[x.Level]++
+	}
+	var parts []string
+	for _, l := range []string{"severe", "high", "medium", "low"} {
+		if counts[l] > 0 {
+			parts = append(parts, st.level(l, fmt.Sprintf("%d %s", counts[l], l)))
+		}
+	}
+	noun := "findings"
+	if len(list) == 1 {
+		noun = "finding"
+	}
+	fmt.Fprintf(w, "Checked: %d open %s, %s.\n\n", len(list), noun, strings.Join(parts, ", "))
+	for _, x := range list {
+		fmt.Fprintf(w, "%s  %s\n", st.level(x.Level, strings.ToUpper(x.Level)), st.bold(x.PrimaryID))
+		fmt.Fprintf(w, "  %s\n", x.Summary)
+		for i, p := range x.Places {
+			if i == 3 {
+				fmt.Fprintf(w, "  %s\n", st.gray(fmt.Sprintf("and %d more", len(x.Places)-3)))
+				break
+			}
+			to := st.gray("no fixed version published")
+			if p.Fix != "" {
+				to = "→ " + st.green(p.Fix)
+			}
+			fmt.Fprintf(w, "  %s %s %s\n", p.Name, p.Version, to)
+		}
+	}
+	fmt.Fprintln(w)
 }
 
 // loginFolder is the absolute folder with symlinks resolved, so a login made through a link matches.

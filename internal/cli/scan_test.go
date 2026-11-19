@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kimathinjoki/watchdep-cli/internal/testutil"
 )
@@ -28,12 +30,12 @@ func TestScanPostsTheInventory(t *testing.T) {
 	var gotAuth string
 	var gotBody []byte
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotAuth = r.Header.Get("Authorization")
-		gotBody, _ = io.ReadAll(r.Body)
 		if r.URL.Path != "/api/v1/inventories" {
 			http.NotFound(w, r)
 			return
 		}
+		gotAuth = r.Header.Get("Authorization")
+		gotBody, _ = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusCreated)
 		_, _ = w.Write([]byte(`{"part":"api","application":"Storefront","inventory_id":7,"production":true,"url":"http://x/inventories/7"}`))
 	}))
@@ -203,5 +205,100 @@ func TestOldLoginIsNotUsed(t *testing.T) {
 	}
 	if raw, _ := os.ReadFile(p); strings.Contains(string(raw), "wdp_old") {
 		t.Fatalf("the old login is dropped on the next login: %s", raw)
+	}
+}
+
+// A fake server that takes the inventory as production and answers the findings once it has been
+// asked notReady times.
+func scanServer(t *testing.T, notReady int, findings string) (*httptest.Server, *int) {
+	t.Helper()
+	asked := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/inventories":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"part":"api","application":"Storefront","inventory_id":7,"production":true,"url":"http://x/inventories/7"}`))
+		case "/api/v1/findings":
+			if r.URL.Query().Get("inventory") != "7" {
+				t.Errorf("asked about inventory %q", r.URL.Query().Get("inventory"))
+			}
+			asked++
+			ready := asked > notReady
+			_, _ = fmt.Fprintf(w, `{"inventory":{"id":7,"found":true,"ready":%t,"complete":true,"production":true},"findings":%s}`, ready, findings)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(srv.Close)
+	return srv, &asked
+}
+
+func scanWith(t *testing.T, srv *httptest.Server, args ...string) (int, string) {
+	t.Helper()
+	old := scanPoll
+	scanPoll = 10 * time.Millisecond
+	t.Cleanup(func() { scanPoll = old })
+	dir := testutil.CopyDir(t, "../../testdata/fixtures/monorepo")
+	var out strings.Builder
+	code := Run(append(append([]string{"scan", "--server", srv.URL}, args...), dir), Env{Stdout: &out, Stderr: &out, Getenv: func(k string) string {
+		if k == "WATCHDEP_TOKEN" {
+			return "wdp_secret"
+		}
+		return ""
+	}})
+	return code, out.String()
+}
+
+// scan waits for the server's check and prints the part's open findings, most urgent first, with
+// the version to move to.
+func TestScanPrintsTheFindings(t *testing.T) {
+	srv, asked := scanServer(t, 2, `[
+		{"id":2,"primary_id":"Ruby 3.4","summary":"Ruby 3.4.7 is behind 3.4.12, the latest 3.4 release","level":"low","kind":"outdated","places":[{"name":"ruby","version":"3.4.7","fix":"3.4.12"}]},
+		{"id":1,"primary_id":"CVE-2024-1","summary":"Shell escape in Rack","level":"high","kind":"vulnerability","places":[{"name":"rack","version":"2.2.3","fix":"2.2.8"}]},
+		{"id":3,"primary_id":"GHSA-x","summary":"No fix yet","level":"medium","kind":"vulnerability","places":[{"name":"left-pad","version":"1.3.0","fix":""}]}]`)
+	code, out := scanWith(t, srv)
+	if code != 0 {
+		t.Fatalf("exit %d: %s", code, out)
+	}
+	if *asked != 3 {
+		t.Fatalf("asked %d times, want 3 (two not ready, then ready)", *asked)
+	}
+	for _, want := range []string{"Checked: 3 open findings, 1 high, 1 medium, 1 low.", "rack 2.2.3 → 2.2.8", "ruby 3.4.7 → 3.4.12", "left-pad 1.3.0 no fixed version published", "http://x/inventories/7"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in:\n%s", want, out)
+		}
+	}
+	if !(strings.Index(out, "CVE-2024-1") < strings.Index(out, "GHSA-x") && strings.Index(out, "GHSA-x") < strings.Index(out, "Ruby 3.4")) {
+		t.Fatalf("not most urgent first:\n%s", out)
+	}
+}
+
+func TestScanSaysWhenClean(t *testing.T) {
+	srv, _ := scanServer(t, 0, `[]`)
+	if _, out := scanWith(t, srv); !strings.Contains(out, "Checked: no open findings.") {
+		t.Fatalf("%s", out)
+	}
+}
+
+// --wait 0 only sends; a check slower than --wait, or a server that does not say, prints the page.
+func TestScanWaitLimits(t *testing.T) {
+	srv, asked := scanServer(t, 0, `[]`)
+	if _, out := scanWith(t, srv, "--wait", "0"); *asked != 0 || strings.Contains(out, "Checked") {
+		t.Fatalf("--wait 0 asked %d times: %s", *asked, out)
+	}
+	ci, ciAsked := scanServer(t, 0, `[]`)
+	old := scanPoll
+	scanPoll = 10 * time.Millisecond
+	defer func() { scanPoll = old }()
+	var ciOut strings.Builder
+	Run([]string{"scan", "--server", ci.URL, testutil.CopyDir(t, "../../testdata/fixtures/monorepo")}, Env{Stdout: &ciOut, Stderr: &ciOut,
+		Getenv: func(k string) string { return map[string]string{"WATCHDEP_TOKEN": "wdp_secret", "CI": "true"}[k] }})
+	if *ciAsked != 0 {
+		t.Fatalf("in CI, scan only sends unless --wait is given: asked %d times\n%s", *ciAsked, ciOut.String())
+	}
+	slow, _ := scanServer(t, 1000, `[]`)
+	code, out := scanWith(t, slow, "--wait", "50ms")
+	if code != 0 || !strings.Contains(out, "still checking it") || !strings.Contains(out, "http://x/inventories/7") {
+		t.Fatalf("exit %d: %s", code, out)
 	}
 }
